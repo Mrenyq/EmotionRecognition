@@ -2,7 +2,7 @@
 Example showing the use of the mifs module.
 """
 
-import mifs
+import FeatureSelection.mifs.mifs as mifs
 from sklearn.datasets import make_classification, make_regression
 import numpy as np
 import matplotlib.pyplot as plt
