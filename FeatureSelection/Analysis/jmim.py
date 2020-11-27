@@ -33,6 +33,5 @@ feature_selector = MutualInformationFeatureSelector(
        categorical=True,
        verbose=2)
 
+# Analyze the relevance between features and arousal
 feature_selector.fit(features, label_ar)
-
-pass
