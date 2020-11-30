@@ -15,7 +15,6 @@ from sklearn.feature_selection.base import SelectorMixin
 import bottleneck as bn
 from . import mi
 
-
 NUM_CORES = cpu_count()
 
 
@@ -187,9 +186,11 @@ class MutualInformationFeatureSelector(BaseEstimator, SelectorMixin):
         # ---------------------------------------------------------------------
         # FIND SUBSEQUENT FEATURES
         # ---------------------------------------------------------------------
-        if self.n_features == 'auto': n_features = np.inf
-        else: n_features = self.n_features
-         
+        if self.n_features == 'auto':
+            n_features = np.inf
+        else:
+            n_features = self.n_features
+
         while len(S) < n_features:
             # loop through the remaining unselected features and calculate MI
             s = len(S) - 1
@@ -200,11 +201,11 @@ class MutualInformationFeatureSelector(BaseEstimator, SelectorMixin):
             if self.method == 'JMI':
                 selected = F[bn.nanargmax(bn.nansum(fmm, axis=0))]
             elif self.method == 'JMIM':
-                if bn.allnan(bn.nanmin(fmm, axis = 0)):
+                if bn.allnan(bn.nanmin(fmm, axis=0)):
                     break
                 selected = F[bn.nanargmax(bn.nanmin(fmm, axis=0))]
             elif self.method == 'MRMR':
-                if bn.allnan(bn.nanmean(fmm, axis = 0)):
+                if bn.allnan(bn.nanmean(fmm, axis=0)):
                     break
                 MRMR = xy_MI[F] - bn.nanmean(fmm, axis=0)
                 selected = F[bn.nanargmax(MRMR)]
@@ -268,12 +269,12 @@ class MutualInformationFeatureSelector(BaseEstimator, SelectorMixin):
         if not isinstance(self.categorical, bool):
             raise ValueError('Categorical must be Boolean.')
         if self.categorical and np.unique(y).shape[0] > 5:
-            print ('Are you sure y is categorical? It has more than 5 levels.')
+            print('Are you sure y is categorical? It has more than 5 levels.')
         if not self.categorical and self._isinteger(y):
-            print ('Are you sure y is continuous? It seems to be discrete.')
+            print('Are you sure y is continuous? It seems to be discrete.')
         if self._isinteger(X):
-            print ('The values of X seem to be discrete. MI_FS will treat them'
-                   'as continuous.')
+            print('The values of X seem to be discrete. MI_FS will treat them'
+                  'as continuous.')
         return X, y
 
     def _add_remove(self, S, F, i):
@@ -295,4 +296,4 @@ class MutualInformationFeatureSelector(BaseEstimator, SelectorMixin):
 
         if self.verbose > 1:
             out += ', ' + self.method + ' : ' + str(MIs[-1])
-        print (out)
+        print(out)
