@@ -16,6 +16,7 @@ path_result = "results\\"
 # load features data
 print("Loading data...")
 for count, folder in enumerate(glob.glob(data_path)):
+    print("{}/{}".format(count + 1, len(glob.glob(data_path))) + "\r", end="")
     for subject in glob.glob(folder + "\\*-2020-*"):
         eeg_path = subject + "\\results\\eeg\\"
         eda_path = subject + "\\results\\eda\\"
@@ -37,16 +38,23 @@ for count, folder in enumerate(glob.glob(data_path)):
             ecg_resp_features = np.load(ecg_resp_path + "ecg_resp_" + str(filename) + ".npy")
 
             concat_features = np.concatenate(
-                [eda_features, ppg_features, resp_features, eeg_features, ecg_features, ecg_resp_features])
+                [eda_features, ppg_features, resp_features, ecg_features, ecg_resp_features, eeg_features])
             if np.sum(np.isinf(concat_features)) == 0 & np.sum(np.isnan(concat_features)) == 0:
                 # print(eda_features.shape)
+                # print(concat_features.shape)
                 features.append(concat_features)
                 y_ar.append(features_list.iloc[i]["Arousal"])
                 y_val.append(features_list.iloc[i]["Valence"])
             else:
                 print(subject + "_" + str(i))
-    print("{}/{}".format(count + 1, len(glob.glob(data_path))) + "\r", end="")
+
 print("Finish")
+print("EDA Features:", eda_features.shape[0])
+print("PPG Features:", ppg_features.shape[0])
+print("Resp Features:", resp_features.shape[0])
+print("ECG Features:", ecg_features.shape[0])
+print("ECG Resp Features:", ecg_resp_features.shape[0])
+print("EEG Features:", eeg_features.shape[0])
 
 # concatenate features and normalize them
 X = np.concatenate([features])
@@ -56,12 +64,21 @@ X_norm = scaler.fit_transform(X)
 y_ar = np.array(y_ar)
 y_val = np.array(y_val)
 
+print("All Features;", X_norm.shape[1])
+print("Number of Data:", X_norm.shape[0])
+
+# Define Feature Selector
 feature_selector = MutualInformationFeatureSelector(method='JMIM',
                                                     k=5,
-                                                    n_features='auto',
+                                                    n_features=X_norm.shape[1],
                                                     categorical=True,
                                                     verbose=2)
 
-# Analyze the relevance between features and arousal
-print("Analysing Arousal...")
+# Analyze arousal
+print("Analyzing Arousal...")
 feature_selector.fit(X_norm, y_ar)
+
+# Analyze valence
+print("Analyzing Valence...")
+feature_selector.fit(X_norm, y_val)
+pass
