@@ -4,20 +4,51 @@ from Libs.Utils import valArLevelToLabels
 from FeatureSelection.mifs.mifs import MutualInformationFeatureSelector
 from sklearn.preprocessing import StandardScaler
 import glob
+import os
 
 features = []
 y_ar = []
 y_val = []
 
-data_path = "G:\\usr\\nishihara\\data\\Features\\Yamaha-Experiment (2020-10-26 - 2020-11-06)\\data\\*"
-game_result = "\\*_gameResults.csv"
-path_result = "results\\"
+# data_path = "G:\\usr\\nishihara\\data\\Yamaha-Experiment\\data\\*"
+data_path = "G:\\usr\\nishihara\\data\\Yamaha-Experiment\\data\\2020-10-27"
 
 # load features data
 print("Loading data...")
-for count, folder in enumerate(glob.glob(data_path)):
-    print("{}/{}".format(count + 1, len(glob.glob(data_path))) + "\r", end="")
-    for subject in glob.glob(folder + "\\*-2020-*"):
+# for count, folder in enumerate(glob.glob(data_path)):
+#     print("{}/{}".format(count + 1, len(glob.glob(data_path))) + "\r", end="")
+#     for subject in glob.glob(folder + "\\*-2020-*"):
+#         eeg_path = subject + "\\results\\eeg\\"
+#         eda_path = subject + "\\results\\eda\\"
+#         ppg_path = subject + "\\results\\ppg\\"
+#         resp_path = subject + "\\results\\resp\\"
+#         ecg_path = subject + "\\results\\ecg\\"
+#         ecg_resp_path = subject + "\\results\\ecg_resp\\"
+#
+#         features_list = pd.read_csv(subject + "\\features_list.csv")
+#         features_list["Valence"] = features_list["Valence"].apply(valArLevelToLabels)
+#         features_list["Arousal"] = features_list["Arousal"].apply(valArLevelToLabels)
+#         for i in range(len(features_list)):
+#             filename = features_list.iloc[i]["Idx"]
+#             eda_features = np.load(eda_path + "eda_" + str(filename) + ".npy")
+#             ppg_features = np.load(ppg_path + "ppg_" + str(filename) + ".npy")
+#             resp_features = np.load(resp_path + "resp_" + str(filename) + ".npy")
+#             eeg_features = np.load(eeg_path + "eeg_" + str(filename) + ".npy")
+#             ecg_features = np.load(ecg_path + "ecg_" + str(filename) + ".npy")
+#             ecg_resp_features = np.load(ecg_resp_path + "ecg_resp_" + str(filename) + ".npy")
+#
+#             concat_features = np.concatenate(
+#                 [eda_features, ppg_features, resp_features, ecg_features, ecg_resp_features, eeg_features])
+#             if np.sum(np.isinf(concat_features)) == 0 & np.sum(np.isnan(concat_features)) == 0:
+#                 # print(eda_features.shape)
+#                 # print(concat_features.shape)
+#                 features.append(concat_features)
+#                 y_ar.append(features_list.iloc[i]["Arousal"])
+#                 y_val.append(features_list.iloc[i]["Valence"])
+#             else:
+#                 print(subject + "_" + str(i))
+
+for subject in glob.glob(data_path + "\\*-2020-*"):
         eeg_path = subject + "\\results\\eeg\\"
         eda_path = subject + "\\results\\eda\\"
         ppg_path = subject + "\\results\\ppg\\"
@@ -68,17 +99,32 @@ print("All Features;", X_norm.shape[1])
 print("Number of Data:", X_norm.shape[0])
 
 # Define Feature Selector
-feature_selector = MutualInformationFeatureSelector(method='JMIM',
-                                                    k=5,
-                                                    n_features=X_norm.shape[1],
-                                                    categorical=True,
-                                                    verbose=2)
+feature_selector_ar = MutualInformationFeatureSelector(method='JMIM',
+                                                       k=5,
+                                                       n_features=X_norm.shape[1],
+                                                       categorical=True,
+                                                       verbose=2)
+feature_selector_val = MutualInformationFeatureSelector(method='JMIM',
+                                                        k=5,
+                                                        n_features=X_norm.shape[1],
+                                                        categorical=True,
+                                                        verbose=2)
 
 # Analyze arousal
 print("Analyzing Arousal...")
-feature_selector.fit(X_norm, y_ar)
+feature_selector_ar.fit(X_norm, y_ar)
 
 # Analyze valence
 print("Analyzing Valence...")
-feature_selector.fit(X_norm, y_val)
-pass
+feature_selector_val.fit(X_norm, y_val)
+
+# Save result
+path_result = "G:\\usr\\nishihara\\data\\Yamaha-Experiment\\jmim_results\\"
+os.makedirs(path_result, exist_ok=True)
+# print(feature_selector.ranking_, feature_selector.mi_)
+result_ar = np.zeros(X_norm.shape[1])
+result_val = np.zeros(X_norm.shape[1])
+result_ar[feature_selector_ar.ranking_] = feature_selector_ar.mi_
+result_val[feature_selector_val.ranking_] = feature_selector_val.mi_
+result = pd.DataFrame({"JMI_Arousal": result_ar, "JMI_Valence": result_val})
+result.to_csv(path_result + "jmim_feature_analysis.csv", index=False)
