@@ -49,35 +49,35 @@ print("Loading data...")
 #                 print(subject + "_" + str(i))
 
 for subject in glob.glob(data_path + "\\*-2020-*"):
-        eeg_path = subject + "\\results\\eeg\\"
-        eda_path = subject + "\\results\\eda\\"
-        ppg_path = subject + "\\results\\ppg\\"
-        resp_path = subject + "\\results\\resp\\"
-        ecg_path = subject + "\\results\\ecg\\"
-        ecg_resp_path = subject + "\\results\\ecg_resp\\"
+    eeg_path = subject + "\\results\\eeg\\"
+    eda_path = subject + "\\results\\eda\\"
+    ppg_path = subject + "\\results\\ppg\\"
+    resp_path = subject + "\\results\\resp\\"
+    ecg_path = subject + "\\results\\ecg\\"
+    ecg_resp_path = subject + "\\results\\ecg_resp\\"
 
-        features_list = pd.read_csv(subject + "\\features_list.csv")
-        features_list["Valence"] = features_list["Valence"].apply(valArLevelToLabels)
-        features_list["Arousal"] = features_list["Arousal"].apply(valArLevelToLabels)
-        for i in range(len(features_list)):
-            filename = features_list.iloc[i]["Idx"]
-            eda_features = np.load(eda_path + "eda_" + str(filename) + ".npy")
-            ppg_features = np.load(ppg_path + "ppg_" + str(filename) + ".npy")
-            resp_features = np.load(resp_path + "resp_" + str(filename) + ".npy")
-            eeg_features = np.load(eeg_path + "eeg_" + str(filename) + ".npy")
-            ecg_features = np.load(ecg_path + "ecg_" + str(filename) + ".npy")
-            ecg_resp_features = np.load(ecg_resp_path + "ecg_resp_" + str(filename) + ".npy")
+    features_list = pd.read_csv(subject + "\\features_list.csv")
+    features_list["Valence"] = features_list["Valence"].apply(valArLevelToLabels)
+    features_list["Arousal"] = features_list["Arousal"].apply(valArLevelToLabels)
+    for i in range(len(features_list)):
+        filename = features_list.iloc[i]["Idx"]
+        eda_features = np.load(eda_path + "eda_" + str(filename) + ".npy")
+        ppg_features = np.load(ppg_path + "ppg_" + str(filename) + ".npy")
+        resp_features = np.load(resp_path + "resp_" + str(filename) + ".npy")
+        eeg_features = np.load(eeg_path + "eeg_" + str(filename) + ".npy")
+        ecg_features = np.load(ecg_path + "ecg_" + str(filename) + ".npy")
+        ecg_resp_features = np.load(ecg_resp_path + "ecg_resp_" + str(filename) + ".npy")
 
-            concat_features = np.concatenate(
-                [eda_features, ppg_features, resp_features, ecg_features, ecg_resp_features, eeg_features])
-            if np.sum(np.isinf(concat_features)) == 0 & np.sum(np.isnan(concat_features)) == 0:
-                # print(eda_features.shape)
-                # print(concat_features.shape)
-                features.append(concat_features)
-                y_ar.append(features_list.iloc[i]["Arousal"])
-                y_val.append(features_list.iloc[i]["Valence"])
-            else:
-                print(subject + "_" + str(i))
+        concat_features = np.concatenate(
+            [eda_features, ppg_features, resp_features, ecg_features, ecg_resp_features, eeg_features])
+        if np.sum(np.isinf(concat_features)) == 0 & np.sum(np.isnan(concat_features)) == 0:
+            # print(eda_features.shape)
+            # print(concat_features.shape)
+            features.append(concat_features)
+            y_ar.append(features_list.iloc[i]["Arousal"])
+            y_val.append(features_list.iloc[i]["Valence"])
+        else:
+            print(subject + "_" + str(i))
 
 print("Finish")
 print("EDA Features:", eda_features.shape[0])
@@ -126,5 +126,7 @@ result_ar = np.zeros(X_norm.shape[1])
 result_val = np.zeros(X_norm.shape[1])
 result_ar[feature_selector_ar.ranking_] = feature_selector_ar.mi_
 result_val[feature_selector_val.ranking_] = feature_selector_val.mi_
-result = pd.DataFrame({"JMI_Arousal": result_ar, "JMI_Valence": result_val})
+result = pd.DataFrame(
+    {"JMI_Arousal": result_ar, "JMI_Valence": result_val, "Ranking_Arousal": feature_selector_ar.ranking_,
+     "Ranking_Valence": feature_selector_val.ranking_})
 result.to_csv(path_result + "jmim_feature_analysis.csv", index=False)
