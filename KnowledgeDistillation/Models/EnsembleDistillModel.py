@@ -2,10 +2,9 @@ import tensorflow as tf
 import math
 
 
-
 class Baseline(tf.keras.Model):
 
-    def __init__(self, num_output = 4):
+    def __init__(self, num_output=4):
         super(Baseline, self).__init__(self)
         self.dense1 = tf.keras.layers.Dense(units=32, activation="elu", name="shared_dense1")
         self.dense2 = tf.keras.layers.Dense(units=64, activation="elu", name="shared_dense2")
@@ -15,21 +14,20 @@ class Baseline(tf.keras.Model):
         self.logit_val = tf.keras.layers.Dense(units=num_output, activation=None, name="logit_val")
         self.logit_ar = tf.keras.layers.Dense(units=num_output, activation=None, name="logit_ar")
 
-        #dropout
+        # dropout
         self.droupout1 = tf.keras.layers.Dropout(0.1, name="dropout1")
         self.droupout2 = tf.keras.layers.Dropout(0.15, name="dropout2")
 
     def forward(self, x, dense, droput):
         return droput(dense(x))
 
-
     def call(self, inputs, training=None, mask=None):
-        #shallow
+        # shallow
         x = self.forward(inputs, self.dense1, self.droupout1)
         x = self.forward(x, self.dense2, self.droupout1)
         x = self.forward(x, self.dense3, self.droupout1)
 
-        #dense
+        # dense
         x = self.forward(x, self.dense4, self.droupout2)
         x = self.forward(x, self.dense5, self.droupout2)
 
@@ -37,6 +35,7 @@ class Baseline(tf.keras.Model):
         z_ar = self.logit_ar(x)
 
         return z_val, z_ar
+
 
 class EnsembleTeacher(tf.keras.Model):
 
@@ -53,9 +52,7 @@ class EnsembleTeacher(tf.keras.Model):
         self.dense2_4 = tf.keras.layers.Dense(units=256, activation="elu", name="dense2_4")
         self.dense3_4 = tf.keras.layers.Dense(units=512, activation="elu", name="dense3_4")
 
-
-
-        #logit
+        # logit
         self.logit1_val = tf.keras.layers.Dense(units=num_output, activation=None, name="logit1_val")
         self.logit2_val = tf.keras.layers.Dense(units=num_output, activation=None, name="logit2_val")
         self.logit3_val = tf.keras.layers.Dense(units=num_output, activation=None, name="logit3_val")
@@ -64,22 +61,19 @@ class EnsembleTeacher(tf.keras.Model):
         self.logit2_ar = tf.keras.layers.Dense(units=num_output, activation=None, name="logit2__ar")
         self.logit3_ar = tf.keras.layers.Dense(units=num_output, activation=None, name="logit3_ar")
 
-
-        #dropout
+        # dropout
         self.droupout1 = tf.keras.layers.Dropout(0.1, name="dropout1")
         self.droupout2 = tf.keras.layers.Dropout(0.15, name="dropout2")
         self.droupout3 = tf.keras.layers.Dropout(0.7, name="dropout3")
 
-        #average
+        # average
         self.average = tf.keras.layers.Average(name="average")
-
 
     def forward(self, x, dense, droput):
         return droput(dense(x))
 
     def call(self, inputs, training=None, mask=None):
-
-        #shared-layer
+        # shared-layer
         x = self.forward(inputs, self.shared_dense1, self.droupout1)
         x = self.forward(x, self.shared_dense2, self.droupout1)
         x = self.forward(x, self.shared_dense3, self.droupout1)
@@ -89,12 +83,12 @@ class EnsembleTeacher(tf.keras.Model):
         logit1_val = self.logit1_val(x1)
         logit1_ar = self.logit1_ar(x1)
 
-        #model-branching 2
+        # model-branching 2
         x2 = self.forward(x, self.dense2_4, self.droupout2)
         logit2_val = self.logit2_val(x2)
         logit2_ar = self.logit2_ar(x1)
 
-        #model-branching 3
+        # model-branching 3
         x3 = self.forward(x, self.dense3_4, self.droupout2)
         logit3_val = self.logit3_val(x3)
         logit3_ar = self.logit3_ar(x1)
@@ -103,8 +97,6 @@ class EnsembleTeacher(tf.keras.Model):
         z_ar = self.average([logit1_ar, logit2_ar, logit3_ar])
 
         return z_val, z_ar
-
-
 
 
 class EnsembleStudent(tf.keras.Model):
@@ -120,24 +112,20 @@ class EnsembleStudent(tf.keras.Model):
         self.en_conv4 = tf.keras.layers.Conv1D(filters=32, kernel_size=5, strides=1, activation=None, name="en_conv4",
                                                padding="same")
 
-        #batch normalization
+        # batch normalization
         self.batch_norm1 = tf.keras.layers.BatchNormalization(name="batch_norm1")
         self.batch_norm2 = tf.keras.layers.BatchNormalization(name="batch_norm2")
         self.batch_norm3 = tf.keras.layers.BatchNormalization(name="batch_norm3")
         self.batch_norm4 = tf.keras.layers.BatchNormalization(name="batch_norm4")
 
-        #activation
+        # activation
         self.elu = tf.keras.layers.ELU()
 
-        #logit
+        # logit
         self.logit = tf.keras.layers.Dense(units=num_output, activation=None, name="logit")
-
-
 
     def forward(self, x, dense, norm, activation):
         return activation(norm(dense(x)))
-
-
 
     def call(self, inputs, training=None, mask=None):
         x = self.forward(inputs, self.en_conv1, self.batch_norm1, self.elu)
