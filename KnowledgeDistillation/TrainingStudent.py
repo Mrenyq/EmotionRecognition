@@ -18,7 +18,8 @@ for i in idx:
         ecg_raw.append(load_data)
 
 len_min = np.nanmin(ecg_len)
-# for ecg in ecg_raw:
-#     if len(ecg) > len_min:
-#         ecg = np.delete(ecg, [len_min])
+for i, ecg in enumerate(ecg_raw):
+    if len(ecg) > len_min:
+        ecg_raw[i] = np.delete(ecg, np.s_[len_min:], axis=0)
 
+pass
