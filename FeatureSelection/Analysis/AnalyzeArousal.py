@@ -8,8 +8,9 @@ import glob
 import os
 
 
-def fitJMIM(x, y, selector):
+def fitJMIM(x, y, selector, i):
     selector.fit(x, y)
+    return selector, i
 
 
 eda_features = []
@@ -121,10 +122,10 @@ print("Number of Data:", len_data)
 
 # Define Feature Selector
 feature_selector = []
-for f, i in zip(features, [10, 5, 5, 5, 5, 10]):
+for f in features:
     selector = MutualInformationFeatureSelector(method='JMIM',
                                                 k=5,
-                                                n_features=i,
+                                                n_features=f.shape[1],
                                                 categorical=True,
                                                 n_jobs=-1,
                                                 verbose=2)
@@ -132,7 +133,10 @@ for f, i in zip(features, [10, 5, 5, 5, 5, 10]):
 
 # Analyze features
 print("Analyzing Features...")
-Parallel(n_jobs=-1)([delayed(fitJMIM)(x, y_ar, s) for x, s in zip(features, feature_selector)])
+feature_selector = Parallel(n_jobs=-1)(
+    [delayed(fitJMIM)(x, y_ar, s, i) for i, (x, s) in enumerate(zip(features, feature_selector))])
+feature_selector.sort(key=lambda x: x[1])
+feature_selector = [s[0] for s in feature_selector]
 
 # Save result
 path_result = "G:\\usr\\nishihara\\data\\Yamaha-Experiment\\jmim_results\\"
