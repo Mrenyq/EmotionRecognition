@@ -73,12 +73,13 @@ for count, folder in enumerate(glob.glob(data_path)):
 # features_list["Arousal"] = features_list["Arousal"].apply(valArLevelToLabels)
 # for i in range(len(features_list)):
 #     filename = features_list.iloc[i]["Idx"]
-#     eda_features = np.load(eda_path + "eda_" + str(filename) + ".npy")
-#     ppg_features = np.load(ppg_path + "ppg_" + str(filename) + ".npy")
-#     resp_features = np.load(resp_path + "resp_" + str(filename) + ".npy")
-#     eeg_features = np.load(eeg_path + "eeg_" + str(filename) + ".npy")
-#     ecg_features = np.load(ecg_path + "ecg_" + str(filename) + ".npy")
-#     ecg_resp_features = np.load(ecg_resp_path + "ecg_resp_" + str(filename) + ".npy")
+#     eda_features.append(np.load(eda_path + "eda_" + str(filename) + ".npy"))
+#     ppg_features.append(np.load(ppg_path + "ppg_" + str(filename) + ".npy"))
+#     resp_features.append(np.load(resp_path + "resp_" + str(filename) + ".npy"))
+#     eeg_features.append(np.load(eeg_path + "eeg_" + str(filename) + ".npy"))
+#     ecg_features.append(np.load(ecg_path + "ecg_" + str(filename) + ".npy"))
+#     ecg_resp_features.append(np.load(ecg_resp_path + "ecg_resp_" + str(filename) + ".npy"))
+#     y_ar.append(features_list.iloc[i]["Arousal"])
 #
 #     concat_features = np.concatenate(
 #         [eda_features, ppg_features, resp_features, ecg_features, ecg_resp_features, eeg_features])
@@ -147,13 +148,10 @@ results_ranking = []
 for i, s in enumerate(feature_selector):
     result = np.zeros(len(s.mi_))
     result[s.ranking_] = s.mi_
-    results_jmi.append(result)
+    results_jmi.append(s.mi_)
     results_ranking.append(s.ranking_)
 
-result_df = pd.DataFrame(
-    {"JMI_EDA": results_jmi[0], "JMI_PPG": results_jmi[1], "JMI_Resp": results_jmi[2], "JMI_ECG": results_jmi[3],
-     "JMI_ECG_Resp": results_jmi[4], "JMI_EEG": results_jmi[5],
-     "Ranking_EDA": results_ranking[0], "Ranking_PPG": results_ranking[1], "Ranking_Resp": results_ranking[2],
-     "Ranking_ECG": results_ranking[3], "Ranking_ECG_Resp": results_ranking[4], "Ranking_EEG": results_ranking[5]})
-
+result_df = pd.DataFrame(results_jmi, index=["JMI_EDA", "JMI_PPG", "JMI_Resp", "JMI_ECG", "JMI_ECG_Resp", "JMI_EEG"]).T
+result_df_ranking = pd.DataFrame(results_ranking, index=["Ranking_EDA", "Ranking_PPG", "Ranking_Resp", "Ranking_ECG", "Ranking_ECG_Resp", "Ranking_EEG"]).T
 result_df.to_csv(path_result + "jmim_feature_analysis_ar.csv", index=False)
+result_df_ranking.to_csv(path_result + "jmim_feature_ranking_ar.csv", index=False)
