@@ -19,7 +19,7 @@ resp_features = []
 eeg_features = []
 ecg_features = []
 ecg_resp_features = []
-y_ar = []
+y_val = []
 
 data_path = "G:\\usr\\nishihara\\data\\Yamaha-Experiment\\data\\*"
 # data_path = "G:\\usr\\nishihara\\data\\Yamaha-Experiment\\data\\2020-11-03"
@@ -37,8 +37,7 @@ for count, folder in enumerate(glob.glob(data_path)):
         ecg_resp_path = subject + "\\results\\ecg_resp\\"
 
         features_list = pd.read_csv(subject + "\\features_list.csv")
-        # features_list["Valence"] = features_list["Valence"].apply(valArLevelToLabels)
-        features_list["Arousal"] = features_list["Arousal"].apply(valArLevelToLabels)
+        features_list["Valence"] = features_list["Valence"].apply(valArLevelToLabels)
         for i in range(len(features_list)):
             filename = features_list.iloc[i]["Idx"]
             eda_features.append(np.load(eda_path + "eda_" + str(filename) + ".npy"))
@@ -47,7 +46,7 @@ for count, folder in enumerate(glob.glob(data_path)):
             eeg_features.append(np.load(eeg_path + "eeg_" + str(filename) + ".npy"))
             ecg_features.append(np.load(ecg_path + "ecg_" + str(filename) + ".npy"))
             ecg_resp_features.append(np.load(ecg_resp_path + "ecg_resp_" + str(filename) + ".npy"))
-            y_ar.append(features_list.iloc[i]["Arousal"])
+            y_val.append(features_list.iloc[i]["Valence"])
 
             # concat_features = np.concatenate(
             #     [eda_features, ppg_features, resp_features, ecg_features, ecg_resp_features, eeg_features])
@@ -116,7 +115,7 @@ for i, feature in enumerate(features):
     len_features += feature.shape[1]  # count number of data
 len_data = features[0].shape[0]
 
-y_ar = np.array(y_ar)
+y_val = np.array(y_val)
 
 print("All Features;", len_features)
 print("Number of Data:", len_data)
@@ -135,7 +134,7 @@ for f in features:
 # Analyze features
 print("Analyzing Features...")
 feature_selector = Parallel(n_jobs=-1)(
-    [delayed(fitJMIM)(x, y_ar, s, i) for i, (x, s) in enumerate(zip(features, feature_selector))])
+    [delayed(fitJMIM)(x, y_val, s, i) for i, (x, s) in enumerate(zip(features, feature_selector))])
 feature_selector.sort(key=lambda x: x[1])
 feature_selector = [s[0] for s in feature_selector]
 
@@ -155,5 +154,5 @@ result_df = pd.DataFrame(results_jmi, index=["JMI_EDA", "JMI_PPG", "JMI_Resp", "
 result_df_ranking = pd.DataFrame(results_ranking,
                                  index=["Ranking_EDA", "Ranking_PPG", "Ranking_Resp", "Ranking_ECG", "Ranking_ECG_Resp",
                                         "Ranking_EEG"]).T
-result_df.to_csv(path_result + "jmim_feature_analysis_ar.csv", index=False)
-result_df_ranking.to_csv(path_result + "jmim_feature_ranking_ar.csv", index=False)
+result_df.to_csv(path_result + "jmim_feature_analysis_val.csv", index=False)
+result_df_ranking.to_csv(path_result + "jmim_feature_ranking_val.csv", index=False)
