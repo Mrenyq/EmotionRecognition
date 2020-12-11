@@ -1,4 +1,6 @@
 import tensorflow as tf
+from tensorflow.keras.layers import Dense, Conv1D, MaxPooling1D, GlobalMaxPooling1D, Activation, BatchNormalization, \
+    Dropout, Flatten
 import math
 
 
@@ -103,35 +105,56 @@ class EnsembleStudent(tf.keras.Model):
 
     def __init__(self, num_output=4):
         super(EnsembleStudent, self).__init__(self)
-        self.en_conv1 = tf.keras.layers.Conv1D(filters=8, kernel_size=7, strides=1, activation=None, name="en_conv1",
-                                               padding="same")
-        self.en_conv2 = tf.keras.layers.Conv1D(filters=16, kernel_size=5, strides=1, activation=None, name="en_conv2",
-                                               padding="same")
-        self.en_conv3 = tf.keras.layers.Conv1D(filters=32, kernel_size=5, strides=1, activation=None, name="en_conv3",
-                                               padding="same")
-        self.en_conv4 = tf.keras.layers.Conv1D(filters=32, kernel_size=5, strides=1, activation=None, name="en_conv4",
-                                               padding="same")
+
+        # convolution layer
+        self.en_conv1 = Conv1D(filters=32, kernel_size=32, strides=1, activation=None, name="en_conv1", padding="same")
+        self.en_conv2 = Conv1D(filters=32, kernel_size=32, strides=1, activation=None, name="en_conv2", padding="same")
+        self.en_conv3 = Conv1D(filters=64, kernel_size=16, strides=1, activation=None, name="en_conv3", padding="same")
+        self.en_conv4 = Conv1D(filters=64, kernel_size=16, strides=1, activation=None, name="en_conv4", padding="same")
+        self.en_conv5 = Conv1D(filters=128, kernel_size=8, strides=1, activation=None, name="en_conv5", padding="same")
+        self.en_conv6 = Conv1D(filters=128, kernel_size=8, strides=1, activation=None, name="en_conv6", padding="same")
+
+        # pooling
+        self.pool1 = MaxPooling1D(pool_size=8, strides=2, name="maxpool1")
+        self.pool2 = MaxPooling1D(pool_size=8, strides=2, name="maxpool2")
+        self.global_pool = GlobalMaxPooling1D(name="avg_pool")
+
+        # dense layer
+        self.dense = Dense(units=512, name="dense1")
+
+        # flatten
+        self.flatten = Flatten(name="flatten")
 
         # batch normalization
-        self.batch_norm1 = tf.keras.layers.BatchNormalization(name="batch_norm1")
-        self.batch_norm2 = tf.keras.layers.BatchNormalization(name="batch_norm2")
-        self.batch_norm3 = tf.keras.layers.BatchNormalization(name="batch_norm3")
-        self.batch_norm4 = tf.keras.layers.BatchNormalization(name="batch_norm4")
+        self.batch_norm1 = BatchNormalization(name="batch_norm1")
+        self.batch_norm2 = BatchNormalization(name="batch_norm2")
+        self.batch_norm3 = BatchNormalization(name="batch_norm3")
+        self.batch_norm4 = BatchNormalization(name="batch_norm4")
+        self.batch_norm5 = BatchNormalization(name="batch_norm5")
+        self.batch_norm6 = BatchNormalization(name="batch_norm6")
+        self.batch_norm7 = BatchNormalization(name="batch_norm7")
 
         # activation
-        self.elu = tf.keras.layers.ELU()
+        self.relu = Activation("relu")
 
         # logit
-        self.logit = tf.keras.layers.Dense(units=num_output, activation=None, name="logit")
+        self.logit = Dense(units=num_output, activation=None, name="logit")
 
-    def forward(self, x, dense, norm, activation):
-        return activation(norm(dense(x)))
+    def forward(self, x, conv, norm, activation):
+        return activation(norm(conv(x)))
 
     def call(self, inputs, training=None, mask=None):
-        x = self.forward(inputs, self.en_conv1, self.batch_norm1, self.elu)
-        x = self.forward(x, self.en_conv2, self.batch_norm2, self.elu)
-        x = self.forward(x, self.en_conv3, self.batch_norm3, self.elu)
-        x = self.forward(x, self.en_conv4, self.batch_norm4, self.elu)
+        x = self.forward(inputs, self.en_conv1, self.batch_norm1, self.relu)
+        x = self.forward(x, self.en_conv2, self.batch_norm2, self.relu)
+        x = self.pool1(x)
+        x = self.forward(x, self.en_conv3, self.batch_norm3, self.relu)
+        x = self.forward(x, self.en_conv4, self.batch_norm4, self.relu)
+        x = self.pool1(x)
+        x = self.forward(x, self.en_conv5, self.batch_norm5, self.relu)
+        x = self.forward(x, self.en_conv6, self.batch_norm6, self.relu)
+        x = self.global_pool(x)
+        x = self.flatten(x)
+        x = self.forward(x, self.dense, self.batch_norm7, self.relu)
 
         z = self.logit(x)
 
