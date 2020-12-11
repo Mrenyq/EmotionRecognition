@@ -29,14 +29,14 @@ print("Loading data...")
 for count, folder in enumerate(glob.glob(data_path)):
     print("{}/{}".format(count + 1, len(glob.glob(data_path))) + "\r", end="")
     for subject in glob.glob(folder + "\\*-2020-*"):
-        eeg_path = subject + "\\results\\eeg\\"
-        eda_path = subject + "\\results\\eda\\"
-        ppg_path = subject + "\\results\\ppg\\"
-        resp_path = subject + "\\results\\resp\\"
-        ecg_path = subject + "\\results\\ecg\\"
-        ecg_resp_path = subject + "\\results\\ecg_resp\\"
+        eeg_path = subject + "\\results_stride=0.5\\EEG\\"
+        eda_path = subject + "\\results_stride=0.5\\eda\\"
+        ppg_path = subject + "\\results_stride=0.5\\ppg\\"
+        resp_path = subject + "\\results_stride=0.5\\Resp\\"
+        ecg_path = subject + "\\results_stride=0.5\\ECG\\"
+        ecg_resp_path = subject + "\\results_stride=0.5\\ECG_resp\\"
 
-        features_list = pd.read_csv(subject + "\\features_list.csv")
+        features_list = pd.read_csv(subject + "\\features_list_1.0.csv")
         # features_list["Valence"] = features_list["Valence"].apply(valArLevelToLabels)
         features_list["Arousal"] = features_list["Arousal"].apply(valArLevelToLabels)
         for i in range(len(features_list)):
@@ -148,7 +148,7 @@ results_ranking = []
 for i, s in enumerate(feature_selector):
     result = np.zeros(len(s.mi_))
     result[s.ranking_] = s.mi_
-    results_jmi.append(s.mi_)
+    results_jmi.append(result)
     results_ranking.append(s.ranking_)
 
 result_df = pd.DataFrame(results_jmi, index=["JMI_EDA", "JMI_PPG", "JMI_Resp", "JMI_ECG", "JMI_ECG_Resp", "JMI_EEG"]).T
