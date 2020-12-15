@@ -1,7 +1,5 @@
 from scipy.signal import butter, lfilter, convolve
-import sys
 import numpy as np
-import pandas as pd
 from datetime import datetime
 from scipy import signal
 
@@ -9,8 +7,44 @@ from scipy import signal
 def valArLevelToLabels(y):
     if (y < 3):
         return 0
+    elif (y == 3):
+        return 1
+    else:
+        return 2
+
+
+def arToLabels(y):
+    if (y < 3):
+        return 0
     else:
         return 1
+
+
+def valToLabels(y):
+    if (y < 3):
+        return 0
+
+    else:
+        return 1
+
+
+def arValMulLabels(ar, val):
+    if ar == 0 and val == 0:
+        return 0
+    elif ar == 0 and val == 1:
+        return 1
+    elif ar == 1 and val == 0:
+        return 2
+    else:
+        return 3
+
+
+def convertLabels(ar, val):
+    labels = np.ones_like(ar)
+    labels[(ar == 0) & (val == 1)] = 1
+    labels[(ar == 1) & (val == 0)] = 2
+    labels[(ar == 1) & (val == 1)] = 3
+    return labels
 
 
 def windowFilter(x, numtaps=120, cutoff=2.0, fs=256.):
@@ -19,25 +53,13 @@ def windowFilter(x, numtaps=120, cutoff=2.0, fs=256.):
     return y
 
 
-def strTimeToUnixTime(time, form='%Y/%m/%d %H:%M:%S'):
-    dt = datetime.strptime(time, form)
-    unixtime = dt.timestamp()
-    return unixtime
-
-
-def unixTimeToStrTime(unixtime):
-    dt = datetime.fromtimestamp(unixtime)
-    time = dt.strftime('%Y/%m/%d %H:%M:%S')
-    return time
-
-
 def utcToTimeStamp(x):
-    utc = datetime.fromtimestamp(x/1000).strftime('%Y-%m-%d %H:%M:%S.%f')
+    utc = datetime.fromtimestamp(x / 1000).strftime('%Y-%m-%d %H:%M:%S.%f')
     return timeToInt(utc)
 
 
 def timeToInt(time):
-    date, hours = time.split(" ")
+    hours = time.split(" ")[-1]
     h, m, s = hours.split(":")
     inttime = 3600 * float(h) + 60 * float(m) + float(s)
 
@@ -71,43 +93,10 @@ def avgSlidingWindow(x, n):
 
     return filtered
 
-def splitEEGPerSubject(eeg_data: pd.DataFrame, timedata: pd.DataFrame, subjects: list, fs=1000):
-    eeg_split = []
-    idx = 0
-    for s in subjects:
-        time_start = strTimeToUnixTime(timedata.at[s, 'Time_Start'])
-        time_end = strTimeToUnixTime(timedata.at[s, 'Time_End'])
-        noise_start = strTimeToUnixTime(timedata.at[s, 'Noise_Start'])
-        noise_end = strTimeToUnixTime(timedata.at[s, 'Noise_End'])
-        timestamp = np.arange(time_start, time_end, 1 / fs)
-        timestamp = list(map(unixTimeToStrTime, timestamp))
-        ms = np.arange(0, len(timestamp), 1000 / fs, dtype=int)
-        eeg = eeg_data.iloc[idx:idx+len(timestamp), 2:21]
-        eeg = eeg.reset_index(drop=True)
 
-        eeg_split_df = pd.DataFrame(timestamp)
-        ms = pd.DataFrame(ms)
-        eeg_split_df = pd.concat([eeg_split_df, ms, eeg], axis=1)
-        eeg_split.append(eeg_split_df)
-        idx += len(timestamp) + int(((noise_end - noise_start) * fs))
+def rollingWindow(a, size=50):
+    slides = []
+    for i in range(len(a) // size):
+        slides.append(a[(i * size):((i + 1) * size)])
 
-    return eeg_split
-
-
-def splitEEGPerVideo(eeg_data: pd.DataFrame, gameresults: pd.DataFrame, fs=1000):
-    form_eegtime = '%Y/%m/%d %H:%M:%S'
-    form_gameresulttime = '%Y-%m-%d %H:%M:%S'
-    eeg_timedata = [strTimeToUnixTime(t, form_eegtime) for t in eeg_data.iloc[:, 0]]
-    time_start = [strTimeToUnixTime(t, form_gameresulttime) for t in gameresults['Time_Start'].values.tolist()]
-    time_end = [strTimeToUnixTime(t, form_gameresulttime) for t in gameresults['TestTime_End'].values.tolist()]
-    eeg_split = []
-    eeg_timedata = np.array(eeg_timedata)
-    for start, end in zip(time_start, time_end):
-        split_time = (eeg_timedata >= start) & (eeg_timedata <= end)
-        eeg_split_df = eeg_data.iloc[split_time]
-        ms = np.arange(0, len(eeg_split_df), 1000 / fs, dtype=int)
-        eeg_split_df['ms'] = ms
-        eeg_split.append(eeg_split_df)
-
-    return eeg_split
-
+    return np.array(slides)

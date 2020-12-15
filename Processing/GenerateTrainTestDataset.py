@@ -1,9 +1,10 @@
 import pandas as pd
 import glob
-from Conf.Settings import STRIDE
+# from Conf.Settings import STRIDE
 
 data_path = "G:\\usr\\nishihara\\data\\Yamaha-Experiment\\data\\"
 dataframe = pd.DataFrame(columns=["Idx", "Start", "End", "Valence", "Arousal", "Emotion", "Status", "Subject"])
+STRIDE = 1.0
 TEST_SPLIT = 0.2
 
 for folder in glob.glob(data_path + "*"):
