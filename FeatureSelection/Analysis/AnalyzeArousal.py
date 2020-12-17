@@ -13,6 +13,7 @@ def fitJMIM(x, y, selector, i):
     return selector, i
 
 
+STRIDE = 0.1
 eda_features = []
 ppg_features = []
 resp_features = []
@@ -21,7 +22,7 @@ ecg_features = []
 ecg_resp_features = []
 y_ar = []
 
-data_path = "G:\\usr\\nishihara\\data\\Yamaha-Experiment\\data\\*"
+data_path = "G:\\usr\\nishihara\\data\\Yamaha-Experiment\\data\\2020-*"
 # data_path = "G:\\usr\\nishihara\\data\\Yamaha-Experiment\\data\\2020-11-03"
 
 # load features data
@@ -29,14 +30,14 @@ print("Loading data...")
 for count, folder in enumerate(glob.glob(data_path)):
     print("{}/{}".format(count + 1, len(glob.glob(data_path))) + "\r", end="")
     for subject in glob.glob(folder + "\\*-2020-*"):
-        eeg_path = subject + "\\results_stride=0.5\\EEG\\"
-        eda_path = subject + "\\results_stride=0.5\\eda\\"
-        ppg_path = subject + "\\results_stride=0.5\\ppg\\"
-        resp_path = subject + "\\results_stride=0.5\\Resp\\"
-        ecg_path = subject + "\\results_stride=0.5\\ECG\\"
-        ecg_resp_path = subject + "\\results_stride=0.5\\ECG_resp\\"
+        eeg_path = subject + "\\results_stride=" + str(STRIDE) + "\\EEG\\"
+        eda_path = subject + "\\results_stride=" + str(STRIDE) + "\\eda\\"
+        ppg_path = subject + "\\results_stride=" + str(STRIDE) + "\\ppg\\"
+        resp_path = subject + "\\results_stride=" + str(STRIDE) + "\\Resp\\"
+        ecg_path = subject + "\\results_stride=" + str(STRIDE) + "\\ECG\\"
+        ecg_resp_path = subject + "\\results_stride=" + str(STRIDE) + "\\ECG_resp\\"
 
-        features_list = pd.read_csv(subject + "\\features_list_1.0.csv")
+        features_list = pd.read_csv(subject + "\\features_list_" + str(STRIDE) + ".csv")
         # features_list["Valence"] = features_list["Valence"].apply(valArLevelToLabels)
         features_list["Arousal"] = features_list["Arousal"].apply(valArLevelToLabels)
         for i in range(len(features_list)):
@@ -155,5 +156,5 @@ result_df = pd.DataFrame(results_jmi, index=["JMI_EDA", "JMI_PPG", "JMI_Resp", "
 result_df_ranking = pd.DataFrame(results_ranking,
                                  index=["Ranking_EDA", "Ranking_PPG", "Ranking_Resp", "Ranking_ECG", "Ranking_ECG_Resp",
                                         "Ranking_EEG"]).T
-result_df.to_csv(path_result + "jmim_feature_analysis_ar.csv", index=False)
-result_df_ranking.to_csv(path_result + "jmim_feature_ranking_ar.csv", index=False)
+result_df.to_csv(path_result + "jmim_feature_analysis_ar_" + str(STRIDE) + ".csv", index=False)
+result_df_ranking.to_csv(path_result + "jmim_feature_ranking_ar_" + str(STRIDE) + ".csv", index=False)
