@@ -1,4 +1,4 @@
-from tensorflow.keras.layers import Dense, Activation, BatchNormalization, Concatenate, Multiply
+from tensorflow.keras.layers import Dense, Activation, BatchNormalization, Concatenate, Multiply, ELU
 
 
 class PercolativeLearning():
@@ -14,7 +14,7 @@ class PercolativeLearning():
         for u in [1024, 512, 256, 128]:
             x = Dense(units=u)(x)
             x = BatchNormalization()(x)
-            x = Activation("relu")(x)
+            x = ELU()(x)
 
         return x
 
@@ -23,7 +23,7 @@ class PercolativeLearning():
         for u in [128, 64, 32]:
             x = Dense(units=u)(x)
             x = BatchNormalization()(x)
-            x = Activation("relu")(x)
+            x = ELU()(x)
 
         logit = Dense(units=self.num_classes)(x)
         return logit
