@@ -7,13 +7,14 @@ from tensorflow.keras.models import Model
 from tensorflow.keras.layers import Input
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.losses import CategoricalCrossentropy
-from tensorflow.keras.metrics import CategoricalAccuracy
+from tensorflow.keras.metrics import CategoricalAccuracy, Mean, Precision, Recall
 from tensorflow.keras.utils import plot_model, to_categorical
 from sklearn.preprocessing import StandardScaler
-from Libs.Utils import arToLabels, valToLabels, arValMulLabels
+from Libs.Utils import arToLabels, valToLabels, arValMulLabels, TrainingHistory
 
 OPTIMIZER = Adam()
 BATCH_SIZE = 256
+EPOCHS = 100
 VALIDATION_SPLIT = 0.1
 TEST_SPLIT = 0.1
 NUM_CLASSES = 4
@@ -79,24 +80,54 @@ x_main = ss.fit_transform(x_main)
 x_aux = ss.fit_transform(x_aux)
 
 # Split train, validation and test
-x_main_train, x_main_val, x_main_test = np.split(x_main, [-int(num_data * (VALIDATION_SPLIT + TEST_SPLIT)), -int(num_data * TEST_SPLIT)], axis=0)
-x_aux_train, x_aux_val, x_aux_test = np.split(x_aux, [-int(num_data * (VALIDATION_SPLIT + TEST_SPLIT)), -int(num_data * TEST_SPLIT)], axis=0)
-y_train, y_val, y_test = np.split(y, [-int(num_data * (VALIDATION_SPLIT + TEST_SPLIT)), -int(num_data * TEST_SPLIT)], axis=0)
+x_main_train, x_main_val, x_main_test = np.split(x_main, [-int(num_data * (VALIDATION_SPLIT + TEST_SPLIT)),
+                                                          -int(num_data * TEST_SPLIT)], axis=0)
+x_aux_train, x_aux_val, x_aux_test = np.split(x_aux, [-int(num_data * (VALIDATION_SPLIT + TEST_SPLIT)),
+                                                      -int(num_data * TEST_SPLIT)], axis=0)
+y_train, y_val, y_test = np.split(y, [-int(num_data * (VALIDATION_SPLIT + TEST_SPLIT)), -int(num_data * TEST_SPLIT)],
+                                  axis=0)
 
 # Make dataset
-train_dataset = tf.data.Dataset.from_tensor_slices((x_main_train, x_aux_train, y_train)).shuffle(num_data).batch(BATCH_SIZE)
-validation_dataset = tf.data.Dataset.from_tensor_slices((x_main_val, x_aux_val, y_val)).shuffle(num_data).batch(BATCH_SIZE)
+train_dataset = tf.data.Dataset.from_tensor_slices((x_main_train, x_aux_train, y_train)).shuffle(num_data).batch(
+    BATCH_SIZE)
+validation_dataset = tf.data.Dataset.from_tensor_slices((x_main_val, x_aux_val, y_val)).shuffle(num_data).batch(
+    BATCH_SIZE)
 test_dataset = tf.data.Dataset.from_tensor_slices((x_main_test, x_aux_test, y_test)).shuffle(num_data).batch(BATCH_SIZE)
 
+# Define Model
 input_main = Input(shape=(input_dim_main,))
 input_aux = Input(shape=input_dim_aux)
 input_alpha = Input(shape=input_dim_alpha)
-
 PL = PercolativeLearning(num_classes=NUM_CLASSES)
-feature = PL.createPercNet(input_main, input_aux, input_alpha)
-logit = PL.createIntNet(input=feature)
 
+feature = PL.createPercNet(input_main, input_aux, input_alpha)
+perc_network = Model(inputs=[input_main, input_aux, input_alpha], outputs=feature)
+logit = PL.createIntNet(input=perc_network.output)
 whole_network = Model(inputs=[input_main, input_aux, input_alpha], outputs=logit)
+perc_network.compile(optimizer=OPTIMIZER)
 whole_network.compile(optimizer=OPTIMIZER, loss=CategoricalCrossentropy(), metrics=CategoricalAccuracy())
+perc_network.summary()
 whole_network.summary()
-plot_model(whole_network, to_file="model.png", show_shapes=True)
+# plot_model(perc_network, to_file="perc_model.png", show_shapes=True)
+# plot_model(whole_network, to_file="whole_model.png", show_shapes=True)
+
+loss_metrics = CategoricalCrossentropy(from_logits=True)
+
+
+# Define loss and gradient
+def computeLoss(model: Model, x, y_true):
+    y_pred = model(x)
+    return loss_metrics(y_true, y_pred)
+
+
+def computeGradient(model: Model, x, y_true):
+    with tf.GradientTape() as tape:
+        loss_value = computeLoss(model, x, y_true)
+    return loss_value, tape.gradient(loss_value, model.trainable_variables)
+
+
+train_result = TrainingHistory()
+validation_result = TrainingHistory()
+
+
+pass

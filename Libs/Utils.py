@@ -100,3 +100,8 @@ def rollingWindow(a, size=50):
         slides.append(a[(i * size):((i + 1) * size)])
 
     return np.array(slides)
+
+class TrainingHistory():
+    def __init__(self):
+        self.loss = []
+        self.accuracy = []
