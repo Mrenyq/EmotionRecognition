@@ -156,9 +156,9 @@ os.makedirs(path_result, exist_ok=True)
 results_jmi = []
 results_ranking = []
 for i, s in enumerate(feature_selector):
-    result = np.zeros(len(s.mi_))
-    result[s.ranking_] = s.mi_
-    results_jmi.append(result)
+    # result = np.zeros(len(s.mi_))
+    # result[s.ranking_] = s.mi_
+    results_jmi.append(s.mi_)
     results_ranking.append(s.ranking_)
 
 result_df = pd.DataFrame(results_jmi, index=["JMI_EDA", "JMI_PPG", "JMI_Resp", "JMI_ECG", "JMI_ECG_Resp", "JMI_EEG"]).T
