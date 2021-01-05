@@ -6,15 +6,17 @@ from PercolativeLearning.PLModel import PercolativeLearning
 from tensorflow.keras.models import Model
 from tensorflow.keras.layers import Input
 from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.optimizers.schedules import ExponentialDecay
 from tensorflow.keras.losses import CategoricalCrossentropy
 from tensorflow.keras.metrics import CategoricalAccuracy, Mean, Precision, Recall
 from tensorflow.keras.utils import plot_model, to_categorical
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from Libs.Utils import arToLabels, valToLabels, arValMulLabels, TrainingHistory
 
-OPTIMIZER = Adam()
-BATCH_SIZE = 256
-EPOCHS_PREV = 100
+LEARNING_RATE = 0.001
+OPTIMIZER = Adam(learning_rate=LEARNING_RATE)
+BATCH_SIZE = 512
+EPOCHS_PREV = 1000
 VALIDATION_SPLIT = 0.1
 TEST_SPLIT = 0.1
 NUM_CLASSES = 4
@@ -75,7 +77,7 @@ num_data = X_main.shape[0]
 Y = to_categorical(Y, NUM_CLASSES)
 
 # Standardize X_main and X_aux
-ss = StandardScaler()
+ss = MinMaxScaler()
 X_main = ss.fit_transform(X_main)
 X_aux = ss.fit_transform(X_aux)
 
@@ -87,6 +89,9 @@ X_aux_train, X_aux_val, X_aux_test = np.split(X_aux, [-int(num_data * (VALIDATIO
 Y_train, Y_val, Y_test = np.split(Y, [-int(num_data * (VALIDATION_SPLIT + TEST_SPLIT)), -int(num_data * TEST_SPLIT)],
                                   axis=0)
 
+print("Input dim: main: {}, aux: {}".format(X_main_train.shape[1], X_aux_train.shape[1]))
+print("Num of data: Train: {}, Validation: {}, Test: {}".format(X_main_train.shape[0], X_main_val.shape[0], X_main_test.shape[0]))
+
 # Make dataset
 train_dataset = tf.data.Dataset.from_tensor_slices((X_main_train, X_aux_train, Y_train)).shuffle(num_data).batch(
     BATCH_SIZE)
@@ -96,8 +101,8 @@ test_dataset = tf.data.Dataset.from_tensor_slices((X_main_test, X_aux_test, Y_te
 
 # Define Model
 input_main = Input(shape=(input_dim_main,))
-input_aux = Input(shape=input_dim_aux)
-input_alpha = Input(shape=input_dim_alpha)
+input_aux = Input(shape=(input_dim_aux,))
+input_alpha = Input(shape=(input_dim_alpha,))
 PL = PercolativeLearning(num_classes=NUM_CLASSES)
 
 feature = PL.createPercNet(input_main, input_aux, input_alpha)
@@ -105,16 +110,16 @@ perc_network = Model(inputs=[input_main, input_aux, input_alpha], outputs=featur
 logit = PL.createIntNet(input=perc_network.output)
 whole_network = Model(inputs=[input_main, input_aux, input_alpha], outputs=logit)
 # perc_network.compile(optimizer=OPTIMIZER)
-# whole_network.compile(optimizer=OPTIMIZER, loss=CategoricalCrossentropy(), metrics=CategoricalAccuracy())
+# whole_network.compile(optimizer=OPTIMIZER, loss_epochs=CategoricalCrossentropy(), metrics=CategoricalAccuracy())
 perc_network.summary()
 whole_network.summary()
-# plot_model(perc_network, to_file="perc_model.png", show_shapes=True)
-# plot_model(whole_network, to_file="whole_model.png", show_shapes=True)
+plot_model(perc_network, to_file="perc_model.png", show_shapes=True)
+plot_model(whole_network, to_file="whole_model.png", show_shapes=True)
 
 loss_metrics = CategoricalCrossentropy(from_logits=True)
 
 
-# Define loss and gradient
+# Define loss_epochs and gradient
 def computeLoss(model: Model, x_main, x_aux, alpha, y_true):
     y_pred = model([x_main, x_aux, alpha])
     return loss_metrics(y_true, y_pred)
@@ -150,15 +155,18 @@ for epoch in range(EPOCHS_PREV):
         epoch_loss_val(loss_value_val)
         epoch_accuracy_val(y_val, y_val_pred)
 
-    train_result.loss.append(epoch_loss_train.result())
-    train_result.accuracy.append(epoch_accuracy_train.result())
-    validation_result.loss.append(epoch_loss_val.result())
-    validation_result.accuracy.append(epoch_accuracy_val.result())
+    train_result.loss_epochs.append(epoch_loss_train.result().numpy())
+    train_result.acc_epochs.append(epoch_accuracy_train.result().numpy())
+    validation_result.loss_epochs.append(epoch_loss_val.result().numpy())
+    validation_result.acc_epochs.append(epoch_accuracy_val.result().numpy())
 
     print(
         "Epoch {}/{} Train Loss: {:.3f}, Train Accuracy: {:.3%}, Validation Loss: {:.3f}, Validation Accuracy: {:.3%}, ".format(
             epoch + 1, EPOCHS_PREV,
-            train_result.loss[-1],
-            train_result.accuracy[-1],
-            validation_result.loss[-1],
-            validation_result.accuracy[-1]))
+            train_result.loss_epochs[-1],
+            train_result.acc_epochs[-1],
+            validation_result.loss_epochs[-1],
+            validation_result.acc_epochs[-1]))
+
+
+

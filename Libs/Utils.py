@@ -1,5 +1,6 @@
 from scipy.signal import butter, lfilter, convolve
 import numpy as np
+import tensorflow as tf
 from datetime import datetime
 from scipy import signal
 
@@ -103,5 +104,11 @@ def rollingWindow(a, size=50):
 
 class TrainingHistory():
     def __init__(self):
-        self.loss = []
-        self.accuracy = []
+        self.loss_epochs = []
+        self.acc_epochs = []
+        self.loss = tf.keras.metrics.Mean()
+        self.acc = tf.keras.metrics.CategoricalAccuracy()
+        self.precision = tf.keras.metrics.Precision()
+        self.recall = tf.keras.metrics.Recall()
+
+
