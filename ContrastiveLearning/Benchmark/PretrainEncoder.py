@@ -2,6 +2,7 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.keras.layers import Input
 from tensorflow.keras.models import Model
+from tensorflow.keras.metrics import Mean
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.utils import plot_model, to_categorical
 from tensorflow.keras.datasets import cifar10
@@ -23,8 +24,10 @@ def show_imgs(imgs, row, col):
 
 # Define const
 NUM_CLASSES = 10
+BATCH_SIZE = 64
 OPTIMIZER = Adam()
-EPOCHS = 100
+EPOCHS_PRIOR = 100
+T = 5
 
 # Import CIFAR10 dataset
 (x_train, y_train), (x_test, y_test) = cifar10.load_data()
@@ -41,25 +44,18 @@ h, z = createCLModel(input_tensor)
 encoder = Model(input_tensor, h)
 CL_model = Model(encoder.input, z)
 CL_model.summary()
-plot_model(CL_model, to_file="BenchModel.png", show_shapes=True)
-
-# max_img_num = 9
-# imgs = []
-# for d in datagen.flow(x_train[1:2], batch_size=1):
-#     imgs.append(image.array_to_img(d[0], scale=True))
-#     if (len(imgs) % max_img_num) == 0:
-#         break
-# show_imgs(imgs, row=3, col=3)
+# plot_model(CL_model, to_file="BenchModel.png", show_shapes=True)
 
 
 # Define contrastive loss. x1, x2 are augmented minibatch.
-def contrastiveLoss(x1, x2, model: Model, temperature):
+# @tf.function
+def contrastiveLoss(x1, x2, model: Model, temperature=5):
     z1 = model(x1)
     z2 = model(x2)
     z = np.zeros((z1.shape[0]*2,) + z1.shape[1:])
     batch_size_2 = len(z)
-    z[::2] = z1.numpy()
-    z[1::2] = z2.numpy()
+    z[::2] = z1
+    z[1::2] = z2
 
     sim = np.zeros((batch_size_2, batch_size_2))
     for i in range(batch_size_2):
@@ -75,15 +71,18 @@ def contrastiveLoss(x1, x2, model: Model, temperature):
         for j in range(batch_size_2):
             loss[i, j] = -np.log(np.exp(sim[i, j] / temperature) / sum)
 
-    loss_value = 0
+    # loss = loss.astype("float32")
+    loss_value = 0.0
     for k in range(batch_size_2 // 2):
-        loss_value += loss[2*k-1, 2*k] + loss[2*k, 2*k-1]
+        loss_value += loss[2*k, 2*k+1] + loss[2*k+1, 2*k]
     loss_value /= batch_size_2
+    loss_value = tf.constant(loss_value, dtype="float32")
 
     return loss_value
 
 
-def computeGradient(x1, x2, model: Model, temperature):
+# @tf.function
+def computeGradient(x1, x2, model: Model, temperature=5):
     with tf.GradientTape() as tape:
         loss_value = contrastiveLoss(x1, x2, model, temperature)
     return loss_value, tape.gradient(loss_value, model.trainable_variables)
@@ -95,4 +94,31 @@ datagen = ImageDataGenerator(fill_mode="constant",
                              height_shift_range=0.3,
                              zoom_range=[0.4, 0.9],
                              channel_shift_range=0.5)
+
+g1 = datagen.flow(x_train, batch_size=BATCH_SIZE, shuffle=False)
+g2 = datagen.flow(x_train, batch_size=BATCH_SIZE, shuffle=False)
+
+d1 = g1.next()
+d2 = g2.next()
+max_img_num = 10
+imgs = []
+for i in range(max_img_num):
+    imgs.append(image.array_to_img(x_train[i], scale=True))
+    imgs.append(image.array_to_img(d1[i], scale=True))
+    imgs.append(image.array_to_img(d2[i], scale=True))
+
+show_imgs(imgs, row=10, col=3)
+
+for epoch in range(EPOCHS_PRIOR):
+    epoch_loss_avg = Mean()
+
+    for x1, x2 in zip(g1, g2):
+        loss_value, grad = computeGradient(x1, x2, CL_model, temperature=T)
+        OPTIMIZER.apply_gradients(zip(grad, CL_model.trainable_variables))
+        epoch_loss_avg(loss_value)
+
+    print("Epoch {}/{} Loss: {:.3f}".format(epoch+1, EPOCHS_PRIOR, epoch_loss_avg.result().numpy()))
+
+
+
 
