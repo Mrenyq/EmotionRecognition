@@ -120,11 +120,13 @@ loss_metrics = CategoricalCrossentropy(from_logits=True)
 
 
 # Define loss_epochs and gradient
+@tf.function
 def computeLoss(model: Model, x_main, x_aux, alpha, y_true):
     y_pred = model([x_main, x_aux, alpha])
     return loss_metrics(y_true, y_pred)
 
 
+@tf.function
 def computeGradient(model: Model, x_main, x_aux, alpha, y_true):
     with tf.GradientTape() as tape:
         loss_value = computeLoss(model, x_main, x_aux, alpha, y_true)
