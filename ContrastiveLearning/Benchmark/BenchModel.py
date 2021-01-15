@@ -36,8 +36,8 @@ def createCLModel_Small(input_tensor):
 
 
 def createClassificationModel(input_tensor, num_classes):
-    x = VGG16(include_top=False, weights=None, input_tensor=input_tensor, pooling="avg").output
-    for u in [128, 128]:
+    x = input_tensor
+    for u in [512, 256, 128]:
         x = Dense(units=u)(x)
         x = BatchNormalization()(x)
         x = ReLU()(x)

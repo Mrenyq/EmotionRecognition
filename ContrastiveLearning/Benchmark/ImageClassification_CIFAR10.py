@@ -38,6 +38,11 @@ h, _ = createCLModel_Small(input_tensor)
 encoder = Model(input_tensor, h)
 encoder.load_weights("./encoder_param.hdf5")
 
+# Fix weights of encoder
+for layer in encoder.layers:
+    layer.trainable = False
+encoder.summary()
+
 # Define classification model
 logits = createClassificationModel(encoder.output, NUM_CLASSES)
 pred = tf.nn.softmax(logits)
@@ -65,8 +70,8 @@ print("Test: Loss: {:.3f}, Accuracy: {:.3%}".format(loss_test, acc_test))
 # Plot result
 loss_history_train = history.history["loss"]
 loss_history_val = history.history["val_loss"]
-acc_history_train = history.history["acc"]
-acc_history_val = history.history["val_acc"]
+acc_history_train = history.history["categorical_accuracy"]
+acc_history_val = history.history["val_categorical_accuracy"]
 plt.figure()
 plt.subplot(1, 2, 1)
 plt.plot(loss_history_train)
