@@ -18,6 +18,7 @@ BATCH_SIZE = 256
 OPTIMIZER = Adam()
 EPOCHS = 100
 VALIDATION_SPLIT = 0.2
+FINE_TUNING = True
 
 # Import CIFAR10 dataset
 (x_train, y_train), (x_test, y_test) = cifar10.load_data()
@@ -38,17 +39,17 @@ h, _ = createCLModel_Small(input_tensor)
 encoder = Model(input_tensor, h)
 encoder.load_weights("./encoder_param.hdf5")
 
-# Fix weights of encoder
-for layer in encoder.layers:
-    layer.trainable = False
-encoder.summary()
+if not FINE_TUNING:
+    # Fix weights of encoder
+    for layer in encoder.layers:
+        layer.trainable = False
 
 # Define classification model
 logits = createClassificationModel(encoder.output, NUM_CLASSES)
 pred = tf.nn.softmax(logits)
 classification_model = Model(encoder.input, pred)
 classification_model.summary()
-plot_model(classification_model, to_file="ClassificationModel.png", show_shapes=True)
+# plot_model(classification_model, to_file="ClassificationModel.png", show_shapes=True)
 
 # Training and validation
 classification_model.compile(optimizer=OPTIMIZER, loss=CategoricalCrossentropy(), metrics=[CategoricalAccuracy()])
@@ -87,4 +88,5 @@ plt.title('Accuracy')
 plt.ylabel('Accuracy')
 plt.xlabel('Epoch')
 plt.legend(['Train', 'Validation'])
+plt.tight_layout()
 plt.show()
