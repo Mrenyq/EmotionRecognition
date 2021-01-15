@@ -1,5 +1,5 @@
 import tensorflow as tf
-from tensorflow.keras.layers import Dense, Conv2D, BatchNormalization, Dropout, ReLU
+from tensorflow.keras.layers import Dense, Conv2D, MaxPooling2D, GlobalAveragePooling2D, BatchNormalization, Dropout, ReLU
 from tensorflow.keras.applications.resnet50 import ResNet50
 from tensorflow.keras.applications.vgg16 import VGG16
 
@@ -14,6 +14,35 @@ def createCLModel(input_tensor):
         x = ReLU()(x)
     z = x
     return h, z
+
+
+def createCLModel_Small(input_tensor):
+    x = input_tensor
+    for filters in [64, 128, 256, 512]:
+        x = Conv2D(filters, kernel_size=(3, 3), padding="same")(x)
+        x = ReLU()(x)
+        x = MaxPooling2D(pool_size=(2, 2))(x)
+        x = Dropout(0.5)(x)
+    h = GlobalAveragePooling2D()(x)
+
+    x = h
+    for units in [128, 128]:
+        x = Dense(units=units)(x)
+        x = BatchNormalization()(x)
+        x = ReLU()(x)
+    z = x
+
+    return h, z
+
+
+def createClassificationModel(input_tensor, num_classes):
+    x = VGG16(include_top=False, weights=None, input_tensor=input_tensor, pooling="avg").output
+    for u in [128, 128]:
+        x = Dense(units=u)(x)
+        x = BatchNormalization()(x)
+        x = ReLU()(x)
+    logits = Dense(units=num_classes)(x)
+    return logits
 
 
 class ContrastiveLearningModel(tf.keras.Model):

@@ -9,7 +9,7 @@ from tensorflow.keras.datasets import cifar10
 from tensorflow.keras.preprocessing import image
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 import matplotlib.pyplot as plt
-from ContrastiveLearning.Benchmark.BenchModel import createCLModel, ContrastiveLearningModel
+from ContrastiveLearning.Benchmark.BenchModel import createCLModel, createCLModel_Small
 
 
 def show_imgs(imgs, row, col):
@@ -23,24 +23,21 @@ def show_imgs(imgs, row, col):
 
 
 # Define const
-NUM_CLASSES = 10
-BATCH_SIZE = 128
+BATCH_SIZE = 512
 OPTIMIZER = Adam()
-EPOCHS_PRIOR = 100
+EPOCHS_PRIOR = 40
 T = 0.1
 
 # Import CIFAR10 dataset
 (x_train, y_train), (x_test, y_test) = cifar10.load_data()
 x_train = x_train.astype("float32") / 255.0
 x_test = x_test.astype("float32") / 255.0
-y_train = to_categorical(y_train, NUM_CLASSES)
-y_test = to_categorical(y_test, NUM_CLASSES)
 input_shape = x_train.shape[1:4]
 # print(input_shape)
 
 # Define models
 input_tensor = Input(shape=input_shape)
-h, z = createCLModel(input_tensor)
+h, z = createCLModel_Small(input_tensor)
 encoder = Model(input_tensor, h)
 CL_model = Model(encoder.input, z)
 CL_model.summary()
@@ -49,12 +46,12 @@ CL_model.summary()
 
 # Define contrastive loss. x1, x2 are augmented minibatch.
 @tf.function
-def contrastiveLoss(xis, xjs, model: Model, temperature=0.1):
+def contrastiveLoss(xis, xjs, temperature=0.1):
     xis = tf.convert_to_tensor(xis, dtype=tf.float32)
     xjs = tf.convert_to_tensor(xjs, dtype=tf.float32)
     temperature = tf.convert_to_tensor(temperature, dtype=tf.float32)
-    zis = model(xis)
-    zjs = model(xjs)
+    zis = CL_model(xis)
+    zjs = CL_model(xjs)
     zis = tf.math.l2_normalize(zis, axis=1)
     zjs = tf.math.l2_normalize(zjs, axis=1)
     z_all = tf.concat([zis, zjs], axis=0)
@@ -81,10 +78,23 @@ def contrastiveLoss(xis, xjs, model: Model, temperature=0.1):
 
 
 @tf.function
-def computeGradient(xis, xjs, model: Model, temperature=0.1):
+def computeGradient(xis, xjs, temperature=0.1):
     with tf.GradientTape() as tape:
-        loss_value = contrastiveLoss(xis, xjs, model, temperature)
-    return loss_value, tape.gradient(loss_value, model.trainable_variables)
+        loss_value = contrastiveLoss(xis, xjs, temperature)
+    return loss_value, tape.gradient(loss_value, CL_model.trainable_variables)
+
+
+@tf.function
+def train_step(xis, xjs, temperature=0.1):
+    loss_value, grad = computeGradient(xis, xjs, temperature)
+    OPTIMIZER.apply_gradients(zip(grad, CL_model.trainable_variables))
+    return loss_value
+
+
+@tf.function
+def test_step(xis, xjs, temperature=0.1):
+    loss_value = contrastiveLoss(xis, xjs, temperature)
+    return loss_value
 
 
 # Data augmentation
@@ -94,8 +104,10 @@ datagen = ImageDataGenerator(fill_mode="constant",
                              zoom_range=[0.4, 0.9],
                              channel_shift_range=0.5)
 
-g1 = datagen.flow(x_train, batch_size=BATCH_SIZE, shuffle=False)
-g2 = datagen.flow(x_train, batch_size=BATCH_SIZE, shuffle=False)
+g1_train = datagen.flow(x_train, batch_size=BATCH_SIZE, shuffle=False)
+g2_train = datagen.flow(x_train, batch_size=BATCH_SIZE, shuffle=False)
+g1_val = datagen.flow(x_test, batch_size=BATCH_SIZE, shuffle=False)
+g2_val = datagen.flow(x_test, batch_size=BATCH_SIZE, shuffle=False)
 
 # d1 = g1.next()
 # d2 = g2.next()
@@ -108,15 +120,34 @@ g2 = datagen.flow(x_train, batch_size=BATCH_SIZE, shuffle=False)
 #
 # show_imgs(imgs, row=10, col=3)
 
+# Training encoder
+loss_result_train = []
+loss_result_val = []
 for epoch in range(EPOCHS_PRIOR):
-    epoch_loss_avg = Mean()
+    epoch_loss_avg_train = Mean()
+    epoch_loss_avg_val = Mean()
 
-    for i, (x1, x2) in enumerate(zip(g1, g2)):
-        loss_value, grad = computeGradient(x1, x2, CL_model, temperature=T)
-        OPTIMIZER.apply_gradients(zip(grad, CL_model.trainable_variables))
-        epoch_loss_avg(loss_value)
+    for i, (x1_train, x2_train, x1_val, x2_val) in enumerate(zip(g1_train, g2_train, g1_val, g2_val)):
+        loss_train = train_step(x1_train, x2_train, temperature=T)
+        loss_val = test_step(x1_val, x2_val, temperature=T)
+        epoch_loss_avg_train(loss_train)
+        epoch_loss_avg_val(loss_val)
         # print(i)
         if i > (x_train.shape[0] // BATCH_SIZE):
             break
 
-    print("Epoch {}/{} Loss: {:.3f}".format(epoch + 1, EPOCHS_PRIOR, epoch_loss_avg.result().numpy()))
+    print("Epoch {}/{} Train Loss: {:.3f}, Validation Loss: {:.3f}".format(epoch + 1, EPOCHS_PRIOR, epoch_loss_avg_train.result().numpy(), epoch_loss_avg_val.result().numpy()))
+    loss_result_train.append(epoch_loss_avg_train.result().numpy())
+    loss_result_val.append(epoch_loss_avg_val.result().numpy())
+
+# Plot result and save model
+plt.figure()
+plt.plot(loss_result_train)
+plt.plot(loss_result_val)
+plt.title('Contrastive Loss (NT-Xent)')
+plt.ylabel('Loss')
+plt.xlabel('Epoch')
+plt.legend(['Train', 'Validation'])
+plt.show()
+
+encoder.save_weights("./encoder_param.hdf5")
