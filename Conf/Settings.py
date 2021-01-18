@@ -4,13 +4,16 @@ FS_EEG = 1000
 FS_GSR = 256
 FS_RESP = 256
 SPLIT_TIME = 45
-STRIDE = 0.1
+STRIDE = 0.2
 EXTENTION_TIME = 2.5
 
 # Features
-FEATURES_N = 2480
+# FEATURES_N = 2480
+FEATURES_N = 13
 ECG_RAW_N = 10935
 # ECG_RAW_N = 11125
+EEG_RAW_N = 9000
+EEG_RAW_CH = 19
 
 # features
 EDA_N = 553
@@ -23,15 +26,16 @@ EEG_N = 912
 # Path Const
 DATASET_PATH = "G:\\usr\\nishihara\\data\\Yamaha-Experiment\\data\\"
 RESULTS_PATH = "\\results_stride=" + str(STRIDE) + "\\"
-EEG_PATH = RESULTS_PATH + "EEG\\"
+EEG_PATH = RESULTS_PATH + "eeg\\"
+EEG_R_PATH = RESULTS_PATH + "EEG_RAW\\"
 EDA_PATH = RESULTS_PATH + "eda\\"
 PPG_PATH = RESULTS_PATH + "ppg\\"
-RESP_PATH = RESULTS_PATH + "Resp\\"
-ECG_PATH = RESULTS_PATH + "ECG\\"
+RESP_PATH = RESULTS_PATH + "resp\\"
+ECG_PATH = RESULTS_PATH + "ecg\\"
 ECG_R_PATH = RESULTS_PATH + "ECG_RAW\\"
 ECG_RR_PATH = RESULTS_PATH + "ECG_RESP_RAW\\"
-ECG_RESP_PATH = RESULTS_PATH + "ECG_resp\\"
-TENSORBOARD_PATH = "D:\\usr\\pras\\result\\tensor-board\\ValenceArousal\\sMCL\\"
+ECG_RESP_PATH = RESULTS_PATH + "ecg_resp\\"
+TENSORBOARD_PATH = "D:\\usr\\pras\\result\\ValenceArousal\\tensorboard\\sMCL\\"
 
 #results raw
 RESULTS_RAW_PATH = "\\results_raw\\"
@@ -44,4 +48,4 @@ ECG_RAW_RESP_PATH = RESULTS_RAW_PATH + "ECG_resp\\"
 
 
 #manager
-CHECK_POINT_PATH = "D:\\usr\\pras\\result\\ValenceArousal\\sMCL\\"
+CHECK_POINT_PATH = "D:\\usr\\pras\\result\\ValenceArousal\\model\\sMCL\\"
