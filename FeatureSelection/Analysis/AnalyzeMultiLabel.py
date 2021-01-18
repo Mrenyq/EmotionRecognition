@@ -13,7 +13,7 @@ def fitJMIM(x, y, selector, i):
     return selector, i
 
 
-STRIDE = 0.1
+STRIDE = 0.2
 TH_FEATURES_NUM = 100
 eda_features = []
 ppg_features = []
@@ -123,7 +123,7 @@ len_data = features[0].shape[0]
 
 y = np.array(y)
 
-print("All Features;", len_features)
+print("All Features:", len_features)
 print("Number of Data:", len_data)
 
 # Define Feature Selector

@@ -2,7 +2,7 @@ import tensorflow as tf
 
 
 # Functional API
-class ECGEEGEncoder():
+class ECGEEGEncoder:
     def __init__(self, dim_head_output=128):
         self.dim_head_output = dim_head_output
         self.ecg_model = None
@@ -71,6 +71,7 @@ class ECGEEGEncoder():
         self.eeg_model = tf.keras.models.Model(input_eeg, z_eeg)
         self.ecg_encoder = tf.keras.models.Model(self.ecg_model.input, h_ecg)
         self.eeg_encoder = tf.keras.models.Model(self.eeg_model.input, h_eeg)
+        return self.ecg_model, self.eeg_model, self.ecg_encoder, self.eeg_encoder
 
     def contrastiveLoss(self, input_ecg, input_eeg, temperature=0.1):
         x_ecg = tf.convert_to_tensor(input_ecg, dtype=tf.float32)

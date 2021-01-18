@@ -1,17 +1,25 @@
 from scipy.signal import butter, lfilter, convolve
 import numpy as np
-import tensorflow as tf
 from datetime import datetime
 from scipy import signal
 
 
-def valArLevelToLabels(y):
-    if (y < 3):
-        return 0
-    elif (y == 3):
-        return 1
+def valArToLabels(y, soft=False):
+    if soft is False:
+        if (y < 3):
+            return 0
+        elif (y == 3):
+            return 1
+        else:
+            return 2
+
     else:
-        return 2
+        if y >= 2 & y <= 4:
+            return np.array([0.1, 0.8, 0.1])
+        elif (y < 2):
+            return np.array([0.8, 0.2, 0])
+        else:
+            return np.array([0.0, 0.2, 0.8])
 
 
 def arToLabels(y):
@@ -101,14 +109,3 @@ def rollingWindow(a, size=50):
         slides.append(a[(i * size):((i + 1) * size)])
 
     return np.array(slides)
-
-class TrainingHistory():
-    def __init__(self):
-        self.loss_epochs = []
-        self.acc_epochs = []
-        self.loss = tf.keras.metrics.Mean()
-        self.acc = tf.keras.metrics.CategoricalAccuracy()
-        self.precision = tf.keras.metrics.Precision()
-        self.recall = tf.keras.metrics.Recall()
-
-
