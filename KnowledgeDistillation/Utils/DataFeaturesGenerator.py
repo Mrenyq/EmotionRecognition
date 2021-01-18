@@ -5,7 +5,7 @@ import random
 from scipy import signal
 from Libs.Utils import valToLabels, arToLabels, arValMulLabels, valArToLabels
 from Conf.Settings import ECG_PATH, RESP_PATH, EEG_PATH, ECG_RESP_PATH, EDA_PATH, PPG_PATH, DATASET_PATH, ECG_R_PATH, \
-    EEG_R_PATH, FS_ECG
+    EEG_R_PATH, FS_ECG, ECG_RAW_MAX, EEG_RAW_MAX, EEG_RAW_MIN, EEG_RAW_N, EEG_RAW_CH
 from ECG.ECGFeatures import ECGFeatures
 from joblib import Parallel, delayed
 
@@ -238,10 +238,12 @@ class DataFetchPreTrain_CL:
             # concat_features = features[0]
 
             if len(ecg_raw) >= self.ECG_N:
-                ecg = ecg_raw[-self.ECG_N:] / (4095 - 0)
+                ecg = ecg_raw[-self.ECG_N:] / ECG_RAW_MAX
+                eeg = (eeg_raw - EEG_RAW_MIN) / (EEG_RAW_MAX - EEG_RAW_MIN)
+
                 # label = np.zeros_like(ecg[-self.ECG_N:])
                 # label[self.ecg_features.extractRR(ecg).astype(np.int32)] = 1
-                data_set.append([ecg[-self.ECG_N:], eeg_raw])
+                data_set.append([ecg[-self.ECG_N:], eeg])
                 # data_set.append([ecg[-self.ECG_N:], concat_features[1]])
 
         return data_set

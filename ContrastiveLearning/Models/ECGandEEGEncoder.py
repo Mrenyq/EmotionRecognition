@@ -31,7 +31,7 @@ class ECGEEGEncoder:
 
         return h_ecg, z_ecg
 
-    def eegEncoder(self, input_tensor, pretrain=True):
+    def eegEncoder3D(self, input_tensor, pretrain=True):
 
         # Encoder
         x = tf.keras.layers.Conv3D(filters=64, kernel_size=(3, 3, 3), strides=(1, 1, 1), padding="same",
@@ -56,17 +56,41 @@ class ECGEEGEncoder:
         h_eeg = tf.keras.layers.GlobalAveragePooling3D()(x)
 
         # Head
+        x = h_eeg
         for u in [1024, 512]:
-            x = tf.keras.layers.Dense(units=u)(h_eeg)
+            x = tf.keras.layers.Dense(units=u)(x)
             x = tf.keras.layers.ELU()(x)
             x = tf.keras.layers.Dropout(0.15)(x)
         z_eeg = tf.keras.layers.Dense(units=self.dim_head_output)(x)
 
         return h_eeg, z_eeg
 
+    def eegEncoder1D(self, input_tensor, pretrain=True):
+
+        # Encoder
+        x = tf.keras.layers.Conv1D(filters=6, kernel_size=5, strides=1, padding="same", trainable=pretrain)(input_tensor)
+        x = tf.keras.layers.Conv1D(filters=6, kernel_size=16, strides=16, padding="same", trainable=pretrain)(x)
+        x = tf.keras.layers.Conv1D(filters=32, kernel_size=7, strides=1, padding="same", trainable=pretrain)(x)
+        x = tf.keras.layers.ELU()(x)
+        x = tf.keras.layers.MaxPooling1D(pool_size=3, strides=2, padding="same")(x)
+        x = tf.keras.layers.Conv1D(filters=32, kernel_size=5, strides=1, padding="same", trainable=pretrain)(x)
+        x = tf.keras.layers.MaxPooling1D(pool_size=12, strides=8, padding="same")(x)
+        h_eeg = tf.keras.layers.Flatten()(x)
+
+        # Head
+        x = h_eeg
+        for u in [512, 512, 512]:
+            x = tf.keras.layers.Dense(units=u)(x)
+            x = tf.keras.layers.ELU()(x)
+            x = tf.keras.layers.Dropout(0.5)(x)
+        z_eeg = tf.keras.layers.Dense(units=self.dim_head_output)(x)
+
+        return h_eeg, z_eeg
+
     def createModel(self, input_ecg, input_eeg, pretrain=True):
         h_ecg, z_ecg = self.ecgEncoder(input_ecg, pretrain=pretrain)
-        h_eeg, z_eeg = self.eegEncoder(input_eeg, pretrain=pretrain)
+        # h_eeg, z_eeg = self.eegEncoder3D(input_eeg, pretrain=pretrain)
+        h_eeg, z_eeg = self.eegEncoder1D(input_eeg, pretrain=pretrain)
         self.ecg_model = tf.keras.models.Model(input_ecg, z_ecg)
         self.eeg_model = tf.keras.models.Model(input_eeg, z_eeg)
         self.ecg_encoder = tf.keras.models.Model(self.ecg_model.input, h_ecg)
@@ -97,11 +121,12 @@ class ECGEEGEncoder:
         loss = -tf.math.log(tf.exp(sim / temperature) / sum)
 
         loss_value = tf.constant(0.0, dtype=tf.float32)
+        losses = []
         for k in range(batch_size_2 // 2):
-            loss_value = loss_value + loss[k, k + (batch_size_2 // 2)] + loss[k + (batch_size_2 // 2), k]
-        loss_value /= batch_size_2
+            losses.append(loss_value + loss[k, k + (batch_size_2 // 2)] + loss[k + (batch_size_2 // 2), k])
+        # loss_value /= batch_size_2
 
-        return loss_value
+        return losses
 
     def computeAvgLoss(self, input_ecg, input_eeg, global_batch_size, temperature=0.1):
         loss_value = self.contrastiveLoss(input_ecg, input_eeg, temperature)

@@ -1,14 +1,8 @@
 import tensorflow as tf
-import numpy as np
-import pandas as pd
-from KnowledgeDistillation.Models.EnsembleDistillModel import EnsembleStudentOneDim_MClass
-from KnowledgeDistillation.Models.EnsembleFeaturesModel import EnsembleSeparateModel_MClass
 from ContrastiveLearning.Models.ECGandEEGEncoder import ECGEEGEncoder
 from Conf.Settings import FEATURES_N, DATASET_PATH, CHECK_POINT_PATH, TENSORBOARD_PATH, ECG_RAW_N, EEG_RAW_N, EEG_RAW_CH
 from KnowledgeDistillation.Utils.DataFeaturesGenerator import DataFetchPreTrain_CL
-import datetime
 import os
-import glob
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "0,1,2"
 
@@ -33,7 +27,8 @@ num_output = 4
 initial_learning_rate = 0.55e-3
 EPOCHS = 500
 PRE_EPOCHS = 100
-BATCH_SIZE = 128
+BATCH_SIZE = 64
+T = 0.1
 th = 0.5
 ALL_BATCH_SIZE = BATCH_SIZE * strategy.num_replicas_in_sync
 wait = 10
@@ -49,23 +44,6 @@ for fold in range(1, 2):
     # test_log_dir = TENSORBOARD_PATH + "KD\\" + current_time + '/test'
     # train_summary_writer = tf.summary.create_file_writer(train_log_dir)
     # test_summary_writer = tf.summary.create_file_writer(test_log_dir)
-
-    # Load data
-    # ecg_raw = []
-    # eeg_raw = []
-    # for folder in glob.glob(DATASET_PATH + "2020-11-02\\"):
-    #     for subject in glob.glob(folder + "*-2020-*\\"):
-    #         path_features_list = subject + "features_list_" + str(STRIDE) + ".csv"
-    #         path_ecg_raw = subject + ECG_R_PATH
-    #         path_eeg_raw = subject + EEG_R_PATH
-    #         features_list = pd.read_csv(path_features_list)
-    #         for i in range(len(features_list)):
-    #             file_num = features_list.iloc[i]["Idx"]
-    #             ecg_raw.append(np.load(path_ecg_raw + "ecg_raw_" + str(file_num) + ".npy"))
-    #             eeg_raw.append(np.load(path_eeg_raw + "eeg_raw_" + str(file_num) + ".npy"))
-    #
-    # ecg_raw = np.array(ecg_raw)
-    # eeg_raw = np.array(eeg_raw)
 
     training_data = DATASET_PATH + "training_data_" + str(fold) + ".csv"
     validation_data = DATASET_PATH + "validation_data_" + str(fold) + ".csv"
@@ -109,6 +87,7 @@ for fold in range(1, 2):
         input_ecg = tf.keras.layers.Input(shape=(ECG_RAW_N,))
         input_eeg = tf.keras.layers.Input(shape=(EEG_RAW_N, EEG_RAW_CH))
         ecg_model, eeg_model, ecg_encoder, eeg_encoder = CL.createModel(input_ecg, input_eeg)
+        eeg_model.summary()
         learning_rate = tf.keras.optimizers.schedules.ExponentialDecay(initial_learning_rate=initial_learning_rate,
                                                                        decay_steps=EPOCHS, decay_rate=0.95,
                                                                        staircase=True)
@@ -135,75 +114,57 @@ for fold in range(1, 2):
     # checkpoint.restore(manager.latest_checkpoint)
 
     with strategy.scope():
-        def train_step(inputs, GLOBAL_BATCH_SIZE=0):
-            # X = base_model.extractFeatures(inputs[-1])
+        def train_step(inputs, GLOBAL_BATCH_SIZE=0, temperature=0.1):
             x_ecg = inputs[0]
             x_eeg = inputs[1]
 
-            X_t = inputs[0]
-            X = inputs[-1]
-            # print(X)
-            y_ar = tf.expand_dims(inputs[1], -1)
-            y_val = tf.expand_dims(inputs[2], -1)
-
             with tf.GradientTape() as tape:
-                ar_logit, val_logit, z = teacher_model.predictKD(X_t)
-                final_loss, prediction_ar, prediction_val = model.trainM(X, y_ar, y_val, ar_logit, val_logit, z, T=3,
-                                                                         alpha=0.9, global_batch_size=
-                                                                         GLOBAL_BATCH_SIZE, training=True)
-
+                final_loss = CL.computeAvgLoss(x_ecg, x_eeg, global_batch_size=GLOBAL_BATCH_SIZE, temperature=temperature)
             # update gradient
-            grads = tape.gradient(final_loss, model.trainable_weights)
-            optimizer.apply_gradients(zip(grads, model.trainable_weights))
+            update_weights = CL.ecg_model.trainable_variables + CL.eeg_model.trainable_variables
+            grads = tape.gradient(final_loss, update_weights)
+            optimizer.apply_gradients(zip(grads, update_weights))
 
             train_loss(final_loss)
-            train_ar_acc(y_ar, prediction_ar)
-            train_val_acc(y_val, prediction_val)
 
             return final_loss
 
 
-        def test_step(inputs, GLOBAL_BATCH_SIZE=0):
-            X = inputs[-1]
-            # X = base_model.extractFeatures(inputs[-1])
-            y_ar = tf.expand_dims(inputs[1], -1)
-            y_val = tf.expand_dims(inputs[2], -1)
-
-            final_loss, prediction_ar, prediction_val = model.test(X, y_ar, y_val, GLOBAL_BATCH_SIZE, training=False)
+        def test_step(inputs, GLOBAL_BATCH_SIZE=0, temperature=0.1):
+            x_ecg = inputs[0]
+            x_eeg = inputs[1]
+            final_loss = CL.computeAvgLoss(x_ecg, x_eeg, global_batch_size=GLOBAL_BATCH_SIZE, temperature=temperature)
             vald_loss(final_loss)
-
-            vald_ar_acc(y_ar, prediction_ar)
-            vald_val_acc(y_val, prediction_val)
 
             return final_loss
 
 
         def train_reset_states():
             train_loss.reset_states()
-            train_ar_acc.reset_states()
-            train_val_acc.reset_states()
+            # train_ar_acc.reset_states()
+            # train_val_acc.reset_states()
 
 
         def vald_reset_states():
             vald_loss.reset_states()
-            vald_ar_acc.reset_states()
-            vald_val_acc.reset_states()
+            # vald_ar_acc.reset_states()
+            # vald_val_acc.reset_states()
 
     with strategy.scope():
         # `experimental_run_v2` replicates the provided computation and runs it
         # with the distributed input.
 
         @tf.function
-        def distributed_train_step(dataset_inputs, GLOBAL_BATCH_SIZE):
+        def distributed_train_step(dataset_inputs, GLOBAL_BATCH_SIZE, temperature=0.1):
             per_replica_losses = strategy.run(train_step,
-                                              args=(dataset_inputs, GLOBAL_BATCH_SIZE))
+                                              args=(dataset_inputs, GLOBAL_BATCH_SIZE, temperature))
             return strategy.reduce(tf.distribute.ReduceOp.SUM, per_replica_losses,
                                    axis=None)
 
 
-        def distributed_test_step(dataset_inputs, GLOBAL_BATCH_SIZE):
+        def distributed_test_step(dataset_inputs, GLOBAL_BATCH_SIZE, temperature=0.1):
             per_replica_losses = strategy.run(test_step,
-                                              args=(dataset_inputs, GLOBAL_BATCH_SIZE))
+                                              args=(dataset_inputs, GLOBAL_BATCH_SIZE, temperature))
             return strategy.reduce(tf.distribute.ReduceOp.SUM, per_replica_losses,
                                    axis=None)
 
@@ -216,21 +177,21 @@ for fold in range(1, 2):
             num_batches = 0
             for step, train in enumerate(train_data):
                 # print(tf.reduce_max(train[0][0]))
-                distributed_train_step(train, ALL_BATCH_SIZE)
+                distributed_train_step(train, ALL_BATCH_SIZE, temperature=T)
                 it += 1
 
-            with train_summary_writer.as_default():
-                tf.summary.scalar('Loss', train_loss.result(), step=epoch)
-                tf.summary.scalar('Arousal accuracy', train_ar_acc.result(), step=epoch)
-                tf.summary.scalar('Valence accuracy', train_val_acc.result(), step=epoch)
+            # with train_summary_writer.as_default():
+            #     tf.summary.scalar('Loss', train_loss.result(), step=epoch)
+            #     tf.summary.scalar('Arousal accuracy', train_ar_acc.result(), step=epoch)
+            #     tf.summary.scalar('Valence accuracy', train_val_acc.result(), step=epoch)
 
             for step, val in enumerate(val_data):
-                distributed_test_step(val, data_fetch.val_n)
+                distributed_test_step(val, data_fetch.val_n, temperature=T)
 
-            with test_summary_writer.as_default():
-                tf.summary.scalar('Loss', vald_loss.result(), step=epoch)
-                tf.summary.scalar('Arousal accuracy', vald_ar_acc.result(), step=epoch)
-                tf.summary.scalar('Valence accuracy', vald_val_acc.result(), step=epoch)
+            # with test_summary_writer.as_default():
+            #     tf.summary.scalar('Loss', vald_loss.result(), step=epoch)
+            #     tf.summary.scalar('Arousal accuracy', vald_ar_acc.result(), step=epoch)
+            #     tf.summary.scalar('Valence accuracy', vald_val_acc.result(), step=epoch)
 
             template = (
                 "epoch {} | Train_loss: {} | Val_loss: {}")
@@ -238,14 +199,15 @@ for fold in range(1, 2):
 
             # Save model
 
-            if (prev_val_loss > vald_loss.result().numpy()):
-                prev_val_loss = vald_loss.result().numpy()
-                wait_i = 0
-                manager.save()
-            else:
-                wait_i += 1
-            if (wait_i == wait):
-                break
+            # if (prev_val_loss > vald_loss.result().numpy()):
+            #     prev_val_loss = vald_loss.result().numpy()
+            #     wait_i = 0
+            #     manager.save()
+            # else:
+            #     wait_i += 1
+            # if (wait_i == wait):
+            #     break
+
             # reset state
             train_reset_states()
             vald_reset_states()
