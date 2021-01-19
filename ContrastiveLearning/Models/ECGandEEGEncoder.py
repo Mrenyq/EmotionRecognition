@@ -14,11 +14,11 @@ class ECGEEGEncoder:
         x = tf.expand_dims(input_tensor, axis=-1)
 
         # Encoder
-        for f in [16, 32, 64, 128, 128]:
+        for f in [4, 8, 16, 32, 32]:
             x = tf.keras.layers.Conv1D(filters=f, kernel_size=5, strides=1, padding="same", trainable=pretrain)(x)
             x = tf.keras.layers.BatchNormalization()(x)
             x = tf.keras.layers.ELU()(x)
-            x = tf.keras.layers.MaxPooling1D(pool_size=3)(x)
+            x = tf.keras.layers.MaxPooling1D(pool_size=4)(x)
         x = tf.keras.layers.GlobalAveragePooling1D()(x)
         h_ecg = x
 
@@ -69,7 +69,7 @@ class ECGEEGEncoder:
 
         # Encoder
         x = input_tensor
-        for f in [64, 128, 128, 256, 256]:
+        for f in [16, 32, 64, 128, 128]:
             x = tf.keras.layers.Conv1D(filters=f, kernel_size=5, strides=1, padding="same", trainable=pretrain)(x)
             x = tf.keras.layers.BatchNormalization()(x)
             x = tf.keras.layers.ELU()(x)
@@ -81,7 +81,7 @@ class ECGEEGEncoder:
         for u in [256, 256]:
             x = tf.keras.layers.Dense(units=u)(x)
             x = tf.keras.layers.ELU()(x)
-            x = tf.keras.layers.Dropout(0.5)(x)
+            x = tf.keras.layers.Dropout(0.15)(x)
         z_eeg = tf.keras.layers.Dense(units=self.dim_head_output)(x)
 
         return h_eeg, z_eeg

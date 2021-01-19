@@ -7,7 +7,7 @@ import os
 
 # setting
 num_output = 4
-initial_learning_rate = 0.001
+initial_learning_rate = 1e-3
 EPOCHS = 500
 PRE_EPOCHS = 100
 BATCH_SIZE = 128
@@ -48,11 +48,14 @@ for fold in range(1, 2):
         output_shapes=(tf.TensorShape([ECG_RAW_N]), tf.TensorShape([EEG_RAW_N, EEG_RAW_CH])))
 
     # train dataset
-    train_data = train_generator.shuffle(data_fetch.train_n).batch(BATCH_SIZE)
+    train_data = train_generator.shuffle(data_fetch.train_n).padded_batch(
+        BATCH_SIZE, padded_shapes=(tf.TensorShape([ECG_RAW_N]), tf.TensorShape([EEG_RAW_N, EEG_RAW_CH])))
 
-    val_data = val_generator.batch(BATCH_SIZE)
+    val_data = val_generator.padded_batch(
+        BATCH_SIZE, padded_shapes=(tf.TensorShape([ECG_RAW_N]), tf.TensorShape([EEG_RAW_N, EEG_RAW_CH])))
 
-    test_data = test_generator.batch(BATCH_SIZE)
+    test_data = test_generator.padded_batch(
+        BATCH_SIZE, padded_shapes=(tf.TensorShape([ECG_RAW_N]), tf.TensorShape([EEG_RAW_N, EEG_RAW_CH])))
 
     CL = ECGEEGEncoder()
     input_ecg = tf.keras.layers.Input(shape=(ECG_RAW_N,))
@@ -60,10 +63,10 @@ for fold in range(1, 2):
     ecg_model, eeg_model, ecg_encoder, eeg_encoder = CL.createModel(input_ecg, input_eeg)
     ecg_model.summary()
     eeg_model.summary()
-    # learning_rate = tf.keras.optimizers.schedules.ExponentialDecay(initial_learning_rate=initial_learning_rate,
-    #                                                                decay_steps=EPOCHS, decay_rate=0.95,
-    #                                                                staircase=True)
-    learning_rate = initial_learning_rate
+    learning_rate = tf.keras.optimizers.schedules.ExponentialDecay(initial_learning_rate=initial_learning_rate,
+                                                                   decay_steps=EPOCHS, decay_rate=0.95,
+                                                                   staircase=True)
+    # learning_rate = initial_learning_rate
     # optimizer = tf.keras.optimizers.SGD(learning_rate=initial_learning_rate)
     optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
 
@@ -147,6 +150,8 @@ for fold in range(1, 2):
 
         template = "epoch {}/{} | Train_loss: {} | Val_loss: {}"
         print(template.format(epoch + 1, EPOCHS, train_loss.result().numpy(), vald_loss.result().numpy()))
+        lr_now = optimizer._decayed_lr(tf.float32).numpy()
+        print("Now learning_rate:", lr_now)
 
         # Save model
 

@@ -66,11 +66,14 @@ for fold in range(1, 2):
         output_shapes=(tf.TensorShape([ECG_RAW_N]), tf.TensorShape([EEG_RAW_N, EEG_RAW_CH])))
 
     # train dataset
-    train_data = train_generator.shuffle(data_fetch.train_n).batch(ALL_BATCH_SIZE)
+    train_data = train_generator.shuffle(data_fetch.train_n).padded_batch(
+        BATCH_SIZE, padded_shapes=(tf.TensorShape([ECG_RAW_N]), tf.TensorShape([EEG_RAW_N, EEG_RAW_CH])))
 
-    val_data = val_generator.batch(ALL_BATCH_SIZE)
+    val_data = val_generator.padded_batch(
+        BATCH_SIZE, padded_shapes=(tf.TensorShape([ECG_RAW_N]), tf.TensorShape([EEG_RAW_N, EEG_RAW_CH])))
 
-    test_data = test_generator.batch(ALL_BATCH_SIZE)
+    test_data = test_generator.padded_batch(
+        BATCH_SIZE, padded_shapes=(tf.TensorShape([ECG_RAW_N]), tf.TensorShape([EEG_RAW_N, EEG_RAW_CH])))
 
     with strategy.scope():
         # model = EnsembleStudent(num_output=num_output, expected_size=EXPECTED_ECG_SIZE)
