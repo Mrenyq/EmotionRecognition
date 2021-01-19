@@ -26,7 +26,7 @@ strategy = tf.distribute.MirroredStrategy(cross_device_ops=cross_tower_ops)
 # setting
 num_output = 4
 initial_learning_rate = 0.55e-3
-EPOCHS = 50
+EPOCHS = 500
 PRE_EPOCHS = 100
 BATCH_SIZE = 200
 T = 0.1
@@ -96,15 +96,6 @@ for fold in range(1, 2):
         # loss
         train_loss = tf.keras.metrics.Mean()
         vald_loss = tf.keras.metrics.Mean()
-
-        pre_trained_loss = tf.keras.metrics.Mean()
-
-        # accuracy
-        train_ar_acc = tf.keras.metrics.BinaryAccuracy()
-        train_val_acc = tf.keras.metrics.BinaryAccuracy()
-
-        vald_ar_acc = tf.keras.metrics.BinaryAccuracy()
-        vald_val_acc = tf.keras.metrics.BinaryAccuracy()
 
     # Manager
     # checkpoint = tf.train.Checkpoint(step=tf.Variable(1), optimizer=optimizer, base_model=model)
