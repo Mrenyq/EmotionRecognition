@@ -120,11 +120,9 @@ class ECGEEGEncoder:
         sum = tf.tile(tf.expand_dims(sum, axis=1), [1, batch_size_2])
         loss = -tf.math.log(tf.exp(sim / temperature) / sum)
 
-        loss_value = tf.constant(0.0, dtype=tf.float32)
         losses = []
         for k in range(batch_size_2 // 2):
-            losses.append(loss_value + loss[k, k + (batch_size_2 // 2)] + loss[k + (batch_size_2 // 2), k])
-        # loss_value /= batch_size_2
+            losses.append((loss[k, k + (batch_size_2 // 2)] + loss[k + (batch_size_2 // 2), k]) / 2)
 
         return losses
 
