@@ -1,4 +1,5 @@
 import tensorflow as tf
+import matplotlib.pyplot as plt
 from ContrastiveLearning.Models.ECGandEEGEncoder import ECGEEGEncoder
 from Conf.Settings import FEATURES_N, DATASET_PATH, CHECK_POINT_PATH, TENSORBOARD_PATH, ECG_RAW_N, EEG_RAW_N, EEG_RAW_CH
 from KnowledgeDistillation.Utils.DataFeaturesGenerator import DataFetchPreTrain_CL
@@ -11,9 +12,6 @@ EPOCHS = 500
 PRE_EPOCHS = 100
 BATCH_SIZE = 128
 T = 0.1
-th = 0.5
-wait = 10
-EXPECTED_ECG_SIZE = (96, 96)
 
 for fold in range(1, 2):
     prev_val_loss = 1000
@@ -81,6 +79,7 @@ for fold in range(1, 2):
     # manager = tf.train.CheckpointManager(checkpoint, checkpoint_prefix, max_to_keep=3)
     # checkpoint.restore(manager.latest_checkpoint)
 
+    @tf.function
     def train_step(inputs, GLOBAL_BATCH_SIZE=0, temperature=0.1):
         x_ecg = inputs[0]
         x_eeg = inputs[1]
@@ -96,6 +95,7 @@ for fold in range(1, 2):
 
         return final_loss
 
+    @tf.function
     def test_step(inputs, GLOBAL_BATCH_SIZE=0, temperature=0.1):
         x_ecg = inputs[0]
         x_eeg = inputs[1]
@@ -118,6 +118,8 @@ for fold in range(1, 2):
 
 
     it = 0
+    train_loss_history = []
+    val_loss_history = []
     for epoch in range(EPOCHS):
         # TRAIN LOOP
         total_loss = 0.0
@@ -140,9 +142,11 @@ for fold in range(1, 2):
         #     tf.summary.scalar('Arousal accuracy', vald_ar_acc.result(), step=epoch)
         #     tf.summary.scalar('Valence accuracy', vald_val_acc.result(), step=epoch)
 
-        template = (
-            "epoch {} | Train_loss: {} | Val_loss: {}")
-        print(template.format(epoch + 1, train_loss.result().numpy(), vald_loss.result().numpy()))
+        train_loss_history.append(train_loss.result().numpy())
+        val_loss_history.append(vald_loss.result().numpy())
+
+        template = "epoch {}/{} | Train_loss: {} | Val_loss: {}"
+        print(template.format(epoch + 1, EPOCHS, train_loss.result().numpy(), vald_loss.result().numpy()))
 
         # Save model
 
@@ -167,3 +171,17 @@ for fold in range(1, 2):
 
     vald_reset_states()
     print("-----------------------------------------------------------------------------------------")
+
+    # Save weights
+    os.makedirs("./Weights", exist_ok=True)
+    ecg_encoder.save_weights("./weights/ECG_encoder_param_" + str(fold) + ".hdf5")
+    eeg_encoder.save_weights("./weights/EEG_encoder_param_" + str(fold) + ".hdf5")
+
+    plt.figure()
+    plt.plot(train_loss_history)
+    plt.plot(val_loss_history)
+    plt.title('Contrastive Loss (NT-Xent)')
+    plt.ylabel('Loss')
+    plt.xlabel('Epoch')
+    plt.legend(['Train', 'Validation'])
+    plt.show()

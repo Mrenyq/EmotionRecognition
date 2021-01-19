@@ -1,4 +1,5 @@
 import tensorflow as tf
+import matplotlib.pyplot as plt
 from ContrastiveLearning.Models.ECGandEEGEncoder import ECGEEGEncoder
 from Conf.Settings import FEATURES_N, DATASET_PATH, CHECK_POINT_PATH, TENSORBOARD_PATH, ECG_RAW_N, EEG_RAW_N, EEG_RAW_CH
 from KnowledgeDistillation.Utils.DataFeaturesGenerator import DataFetchPreTrain_CL
@@ -25,14 +26,11 @@ strategy = tf.distribute.MirroredStrategy(cross_device_ops=cross_tower_ops)
 # setting
 num_output = 4
 initial_learning_rate = 0.55e-3
-EPOCHS = 500
+EPOCHS = 50
 PRE_EPOCHS = 100
-BATCH_SIZE = 128
+BATCH_SIZE = 200
 T = 0.1
-# th = 0.5
 ALL_BATCH_SIZE = BATCH_SIZE * strategy.num_replicas_in_sync
-# wait = 10
-# EXPECTED_ECG_SIZE = (96, 96)
 
 for fold in range(1, 2):
     prev_val_loss = 1000
@@ -49,7 +47,7 @@ for fold in range(1, 2):
     validation_data = DATASET_PATH + "validation_data_" + str(fold) + ".csv"
     testing_data = DATASET_PATH + "test_data_" + str(fold) + ".csv"
 
-    data_fetch = DataFetchPreTrain_CL(validation_data, validation_data, testing_data, ECG_RAW_N)
+    data_fetch = DataFetchPreTrain_CL(training_data, validation_data, testing_data, ECG_RAW_N)
     generator = data_fetch.fetch
 
     train_generator = tf.data.Dataset.from_generator(
@@ -161,7 +159,7 @@ for fold in range(1, 2):
             return strategy.reduce(tf.distribute.ReduceOp.SUM, per_replica_losses,
                                    axis=None)
 
-
+        @tf.function
         def distributed_test_step(dataset_inputs, GLOBAL_BATCH_SIZE, temperature=0.1):
             per_replica_losses = strategy.run(test_step,
                                               args=(dataset_inputs, GLOBAL_BATCH_SIZE, temperature))
@@ -170,6 +168,8 @@ for fold in range(1, 2):
 
 
         it = 0
+        train_loss_history = []
+        val_loss_history = []
 
         for epoch in range(EPOCHS):
             # TRAIN LOOP
@@ -193,9 +193,11 @@ for fold in range(1, 2):
             #     tf.summary.scalar('Arousal accuracy', vald_ar_acc.result(), step=epoch)
             #     tf.summary.scalar('Valence accuracy', vald_val_acc.result(), step=epoch)
 
-            template = (
-                "epoch {} | Train_loss: {} | Val_loss: {}")
-            print(template.format(epoch + 1, train_loss.result().numpy(), vald_loss.result().numpy()))
+            train_loss_history.append(train_loss.result().numpy())
+            val_loss_history.append(vald_loss.result().numpy())
+
+            template = "epoch {}/{} | Train_loss: {} | Val_loss: {}"
+            print(template.format(epoch + 1, EPOCHS, train_loss.result().numpy(), vald_loss.result().numpy()))
 
             # Save model
 
@@ -215,10 +217,22 @@ for fold in range(1, 2):
     print("-------------------------------------------Testing----------------------------------------------")
     for step, test in enumerate(test_data):
         distributed_test_step(test, data_fetch.test_n)
-    template = (
-        "Test: loss: {}, arousal acc: {}, valence acc: {}")
-    print(template.format(
-        vald_loss.result().numpy(), vald_ar_acc.result().numpy(), vald_val_acc.result().numpy()))
+    template = "Test: loss: {}"
+    print(template.format(vald_loss.result().numpy()))
 
     vald_reset_states()
     print("-----------------------------------------------------------------------------------------")
+
+    # Save weights
+    os.makedirs("./Weights", exist_ok=True)
+    ecg_encoder.save_weights("./weights/ECG_encoder_param_" + str(fold) + ".hdf5")
+    eeg_encoder.save_weights("./weights/EEG_encoder_param_" + str(fold) + ".hdf5")
+
+    plt.figure()
+    plt.plot(train_loss_history)
+    plt.plot(val_loss_history)
+    plt.title('Contrastive Loss (NT-Xent)')
+    plt.ylabel('Loss')
+    plt.xlabel('Epoch')
+    plt.legend(['Train', 'Validation'])
+    plt.show()
