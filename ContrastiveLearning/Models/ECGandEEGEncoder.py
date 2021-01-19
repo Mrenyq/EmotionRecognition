@@ -14,12 +14,12 @@ class ECGEEGEncoder:
         x = tf.expand_dims(input_tensor, axis=-1)
 
         # Encoder
-        for f in [8, 8, 16, 16, 32, 32]:
+        for f in [16, 32, 64, 128, 128]:
             x = tf.keras.layers.Conv1D(filters=f, kernel_size=5, strides=1, padding="same", trainable=pretrain)(x)
             x = tf.keras.layers.BatchNormalization()(x)
             x = tf.keras.layers.ELU()(x)
             x = tf.keras.layers.MaxPooling1D(pool_size=3)(x)
-        x = tf.keras.layers.Flatten()(x)
+        x = tf.keras.layers.GlobalAveragePooling1D()(x)
         h_ecg = x
 
         # Head
@@ -68,18 +68,17 @@ class ECGEEGEncoder:
     def eegEncoder1D(self, input_tensor, pretrain=True):
 
         # Encoder
-        x = tf.keras.layers.Conv1D(filters=6, kernel_size=5, strides=1, padding="same", trainable=pretrain)(input_tensor)
-        x = tf.keras.layers.Conv1D(filters=6, kernel_size=16, strides=16, padding="same", trainable=pretrain)(x)
-        x = tf.keras.layers.Conv1D(filters=32, kernel_size=7, strides=1, padding="same", trainable=pretrain)(x)
-        x = tf.keras.layers.ELU()(x)
-        x = tf.keras.layers.MaxPooling1D(pool_size=3, strides=2, padding="same")(x)
-        x = tf.keras.layers.Conv1D(filters=32, kernel_size=5, strides=1, padding="same", trainable=pretrain)(x)
-        x = tf.keras.layers.MaxPooling1D(pool_size=12, strides=8, padding="same")(x)
-        h_eeg = tf.keras.layers.Flatten()(x)
+        x = input_tensor
+        for f in [64, 128, 128, 256, 256]:
+            x = tf.keras.layers.Conv1D(filters=f, kernel_size=5, strides=1, padding="same", trainable=pretrain)(x)
+            x = tf.keras.layers.BatchNormalization()(x)
+            x = tf.keras.layers.ELU()(x)
+            x = tf.keras.layers.MaxPooling1D(pool_size=4)(x)
+        h_eeg = tf.keras.layers.GlobalAveragePooling1D()(x)
 
         # Head
         x = h_eeg
-        for u in [512, 512, 512]:
+        for u in [256, 256]:
             x = tf.keras.layers.Dense(units=u)(x)
             x = tf.keras.layers.ELU()(x)
             x = tf.keras.layers.Dropout(0.5)(x)

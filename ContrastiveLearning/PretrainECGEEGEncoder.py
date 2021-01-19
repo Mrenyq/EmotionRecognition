@@ -7,7 +7,7 @@ import os
 
 # setting
 num_output = 4
-initial_learning_rate = 0.55e-3
+initial_learning_rate = 0.001
 EPOCHS = 500
 PRE_EPOCHS = 100
 BATCH_SIZE = 128
@@ -29,6 +29,7 @@ for fold in range(1, 2):
     testing_data = DATASET_PATH + "test_data_" + str(fold) + ".csv"
 
     data_fetch = DataFetchPreTrain_CL(training_data, validation_data, testing_data, ECG_RAW_N)
+    # data_fetch = DataFetchPreTrain_CL(validation_data, validation_data, testing_data, ECG_RAW_N)
     generator = data_fetch.fetch
 
     train_generator = tf.data.Dataset.from_generator(
@@ -47,23 +48,22 @@ for fold in range(1, 2):
         output_shapes=(tf.TensorShape([ECG_RAW_N]), tf.TensorShape([EEG_RAW_N, EEG_RAW_CH])))
 
     # train dataset
-    train_data = train_generator.shuffle(data_fetch.train_n).repeat(3).padded_batch(
-        BATCH_SIZE, padded_shapes=(tf.TensorShape([ECG_RAW_N]), tf.TensorShape([EEG_RAW_N, EEG_RAW_CH])))
+    train_data = train_generator.shuffle(data_fetch.train_n).batch(BATCH_SIZE)
 
-    val_data = val_generator.padded_batch(
-        BATCH_SIZE, padded_shapes=(tf.TensorShape([ECG_RAW_N]), tf.TensorShape([EEG_RAW_N, EEG_RAW_CH])))
+    val_data = val_generator.batch(BATCH_SIZE)
 
-    test_data = test_generator.padded_batch(
-        BATCH_SIZE, padded_shapes=(tf.TensorShape([ECG_RAW_N]), tf.TensorShape([EEG_RAW_N, EEG_RAW_CH])))
+    test_data = test_generator.batch(BATCH_SIZE)
 
     CL = ECGEEGEncoder()
     input_ecg = tf.keras.layers.Input(shape=(ECG_RAW_N,))
     input_eeg = tf.keras.layers.Input(shape=(EEG_RAW_N, EEG_RAW_CH))
     ecg_model, eeg_model, ecg_encoder, eeg_encoder = CL.createModel(input_ecg, input_eeg)
+    ecg_model.summary()
     eeg_model.summary()
-    learning_rate = tf.keras.optimizers.schedules.ExponentialDecay(initial_learning_rate=initial_learning_rate,
-                                                                   decay_steps=EPOCHS, decay_rate=0.95,
-                                                                   staircase=True)
+    # learning_rate = tf.keras.optimizers.schedules.ExponentialDecay(initial_learning_rate=initial_learning_rate,
+    #                                                                decay_steps=EPOCHS, decay_rate=0.95,
+    #                                                                staircase=True)
+    learning_rate = initial_learning_rate
     # optimizer = tf.keras.optimizers.SGD(learning_rate=initial_learning_rate)
     optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
 
@@ -135,7 +135,7 @@ for fold in range(1, 2):
         #     tf.summary.scalar('Valence accuracy', train_val_acc.result(), step=epoch)
 
         for step, val in enumerate(val_data):
-            test_step(val, data_fetch.val_n, temperature=T)
+            test_step(val, BATCH_SIZE, temperature=T)
 
         # with test_summary_writer.as_default():
         #     tf.summary.scalar('Loss', vald_loss.result(), step=epoch)
@@ -165,7 +165,7 @@ for fold in range(1, 2):
 
     print("-------------------------------------------Testing----------------------------------------------")
     for step, test in enumerate(test_data):
-        test_step(test, data_fetch.test_n)
+        test_step(test, BATCH_SIZE)
     template = "Test: loss: {}"
     print(template.format(vald_loss.result().numpy()))
 
@@ -180,7 +180,7 @@ for fold in range(1, 2):
     plt.figure()
     plt.plot(train_loss_history)
     plt.plot(val_loss_history)
-    plt.title('Contrastive Loss (NT-Xent)')
+    plt.title('Contrastive Loss')
     plt.ylabel('Loss')
     plt.xlabel('Epoch')
     plt.legend(['Train', 'Validation'])

@@ -5,7 +5,7 @@ from Conf.Settings import FEATURES_N, DATASET_PATH, CHECK_POINT_PATH, TENSORBOAR
 from KnowledgeDistillation.Utils.DataFeaturesGenerator import DataFetchPreTrain_CL
 import os
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "0,1,2"
+os.environ["CUDA_VISIBLE_DEVICES"] = "0,1"
 
 gpus = tf.config.experimental.list_physical_devices('GPU')
 print(gpus)
@@ -20,12 +20,12 @@ if gpus:
         # Virtual devices must be set before GPUs have been initialized
         print(e)
 
-cross_tower_ops = tf.distribute.HierarchicalCopyAllReduce(num_packs=3)
+cross_tower_ops = tf.distribute.HierarchicalCopyAllReduce(num_packs=2)
 strategy = tf.distribute.MirroredStrategy(cross_device_ops=cross_tower_ops)
 
 # setting
 num_output = 4
-initial_learning_rate = 0.55e-3
+initial_learning_rate = 0.001
 EPOCHS = 500
 PRE_EPOCHS = 100
 BATCH_SIZE = 200
@@ -66,14 +66,11 @@ for fold in range(1, 2):
         output_shapes=(tf.TensorShape([ECG_RAW_N]), tf.TensorShape([EEG_RAW_N, EEG_RAW_CH])))
 
     # train dataset
-    train_data = train_generator.shuffle(data_fetch.train_n).repeat(3).padded_batch(
-        BATCH_SIZE, padded_shapes=(tf.TensorShape([ECG_RAW_N]), tf.TensorShape([EEG_RAW_N, EEG_RAW_CH])))
+    train_data = train_generator.shuffle(data_fetch.train_n).batch(ALL_BATCH_SIZE)
 
-    val_data = val_generator.padded_batch(
-        BATCH_SIZE, padded_shapes=(tf.TensorShape([ECG_RAW_N]), tf.TensorShape([EEG_RAW_N, EEG_RAW_CH])))
+    val_data = val_generator.batch(ALL_BATCH_SIZE)
 
-    test_data = test_generator.padded_batch(
-        BATCH_SIZE, padded_shapes=(tf.TensorShape([ECG_RAW_N]), tf.TensorShape([EEG_RAW_N, EEG_RAW_CH])))
+    test_data = test_generator.batch(ALL_BATCH_SIZE)
 
     with strategy.scope():
         # model = EnsembleStudent(num_output=num_output, expected_size=EXPECTED_ECG_SIZE)
@@ -86,10 +83,10 @@ for fold in range(1, 2):
         input_eeg = tf.keras.layers.Input(shape=(EEG_RAW_N, EEG_RAW_CH))
         ecg_model, eeg_model, ecg_encoder, eeg_encoder = CL.createModel(input_ecg, input_eeg)
         eeg_model.summary()
-        learning_rate = tf.keras.optimizers.schedules.ExponentialDecay(initial_learning_rate=initial_learning_rate,
-                                                                       decay_steps=EPOCHS, decay_rate=0.95,
-                                                                       staircase=True)
-        # optimizer = tf.keras.optimizers.SGD(learning_rate=initial_learning_rate)
+        # learning_rate = tf.keras.optimizers.schedules.ExponentialDecay(initial_learning_rate=initial_learning_rate,
+        #                                                                decay_steps=EPOCHS, decay_rate=0.95,
+        #                                                                staircase=True)
+        learning_rate = initial_learning_rate
         optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
 
         # ---------------------------Epoch&Loss--------------------------#
@@ -177,7 +174,7 @@ for fold in range(1, 2):
             #     tf.summary.scalar('Valence accuracy', train_val_acc.result(), step=epoch)
 
             for step, val in enumerate(val_data):
-                distributed_test_step(val, data_fetch.val_n, temperature=T)
+                distributed_test_step(val, ALL_BATCH_SIZE, temperature=T)
 
             # with test_summary_writer.as_default():
             #     tf.summary.scalar('Loss', vald_loss.result(), step=epoch)
@@ -207,7 +204,7 @@ for fold in range(1, 2):
 
     print("-------------------------------------------Testing----------------------------------------------")
     for step, test in enumerate(test_data):
-        distributed_test_step(test, data_fetch.test_n)
+        distributed_test_step(test, ALL_BATCH_SIZE)
     template = "Test: loss: {}"
     print(template.format(vald_loss.result().numpy()))
 
@@ -222,7 +219,7 @@ for fold in range(1, 2):
     plt.figure()
     plt.plot(train_loss_history)
     plt.plot(val_loss_history)
-    plt.title('Contrastive Loss (NT-Xent)')
+    plt.title('Contrastive Loss')
     plt.ylabel('Loss')
     plt.xlabel('Epoch')
     plt.legend(['Train', 'Validation'])
