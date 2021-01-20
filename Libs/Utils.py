@@ -56,6 +56,13 @@ def convertLabels(ar, val):
     return labels
 
 
+def convertContrastiveLabels(label1, label2):
+    if label1 == label2:
+        return 0
+    else:
+        return 1
+
+
 def windowFilter(x, numtaps=120, cutoff=2.0, fs=256.):
     b = signal.firwin(numtaps, cutoff, fs=fs, window='hamming', pass_zero='lowpass')
     y = lfilter(b, [1.0], x)

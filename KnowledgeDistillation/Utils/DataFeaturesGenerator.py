@@ -194,10 +194,10 @@ class DataFetchPreTrain:
 
 class DataFetchPreTrain_CL:
 
-    def __init__(self, train_file, validation_file, test_file, ECG_N):
+    def __init__(self, train_file, validation_file, test_file, ECG_N, soft=False):
 
         self.ECG_N = ECG_N
-        self.ecg_features = ECGFeatures(fs=FS_ECG)
+        self.soft = soft
         self.data_train = self.readData(pd.read_csv(train_file))
         self.data_val = self.readData(pd.read_csv(validation_file))
         self.data_test = self.readData(pd.read_csv(test_file))
@@ -205,9 +205,10 @@ class DataFetchPreTrain_CL:
         self.val_n = len(self.data_val)
         self.test_n = len(self.data_test)
 
-    def fetch(self, training_mode=0):
+    def fetch(self, training_mode=0, ecg_or_eeg=0):
         '''
         :param training_mode: 0 = training, 1 = testing, 2 = validation
+        :param ecg_or_eeg: 0 = ecg, 1 = eeg
         :return:
         '''
         if training_mode == 0:
@@ -221,7 +222,10 @@ class DataFetchPreTrain_CL:
         while i < len(data_set):
             # print(i)
             data_i = data_set[i]
-            yield data_i[0], data_i[1]
+            if ecg_or_eeg == 0:
+                yield data_i[0], data_i[2]
+            else:
+                yield data_i[1], data_i[2]
             i += 1
 
     def readData(self, features_list):
@@ -235,7 +239,15 @@ class DataFetchPreTrain_CL:
             ecg_raw = np.load(base_path + ECG_R_PATH + "ecg_raw_" + str(filename) + ".npy")
             eeg_raw = np.load(base_path + EEG_R_PATH + "eeg_raw_" + str(filename) + ".npy")
 
-            # concat_features = features[0]
+            y_ar = features_list.iloc[i]["Arousal"]
+            y_val = features_list.iloc[i]["Valence"]
+            if self.soft is False:
+                y_ar_bin = arToLabels(y_ar)
+                y_val_bin = valToLabels(y_val)
+            else:
+                y_ar_bin = valArToLabels(y_ar, True)
+                y_val_bin = valArToLabels(y_val, True)
+            m_class = arValMulLabels(y_ar_bin, y_val_bin)
 
             if len(ecg_raw) >= self.ECG_N:
                 ecg = ecg_raw[-self.ECG_N:] / ECG_RAW_MAX
@@ -243,7 +255,7 @@ class DataFetchPreTrain_CL:
 
                 # label = np.zeros_like(ecg[-self.ECG_N:])
                 # label[self.ecg_features.extractRR(ecg).astype(np.int32)] = 1
-                data_set.append([ecg[-self.ECG_N:], eeg])
+                data_set.append([ecg[-self.ECG_N:], eeg, m_class])
                 # data_set.append([ecg[-self.ECG_N:], concat_features[1]])
 
         return data_set
