@@ -27,7 +27,7 @@ strategy = tf.distribute.MirroredStrategy(cross_device_ops=cross_tower_ops)
 num_output = 4
 initial_learning_rate = 0.2e-3
 EPOCHS = 500
-BATCH_SIZE = 128
+BATCH_SIZE = 512
 ALL_BATCH_SIZE = BATCH_SIZE * strategy.num_replicas_in_sync
 
 for fold in range(1, 2):
@@ -91,12 +91,12 @@ for fold in range(1, 2):
     # test_data_eeg = test_generator_eeg.padded_batch(
     #     BATCH_SIZE, padded_shapes=(tf.TensorShape([EEG_RAW_N, EEG_RAW_CH]), ()))
 
-    train_data_ecg = train_generator_ecg.shuffle(data_fetch.train_n).batch(BATCH_SIZE)
-    val_data_ecg = val_generator_ecg.batch(BATCH_SIZE)
-    test_data_ecg = test_generator_ecg.batch(BATCH_SIZE)
-    train_data_eeg = train_generator_eeg.shuffle(data_fetch.train_n).batch(BATCH_SIZE)
-    val_data_eeg = val_generator_eeg.batch(BATCH_SIZE)
-    test_data_eeg = test_generator_eeg.batch(BATCH_SIZE)
+    train_data_ecg = train_generator_ecg.shuffle(data_fetch.train_n).batch(ALL_BATCH_SIZE)
+    val_data_ecg = val_generator_ecg.batch(ALL_BATCH_SIZE)
+    test_data_ecg = test_generator_ecg.batch(ALL_BATCH_SIZE)
+    train_data_eeg = train_generator_eeg.shuffle(data_fetch.train_n).batch(ALL_BATCH_SIZE)
+    val_data_eeg = val_generator_eeg.batch(ALL_BATCH_SIZE)
+    test_data_eeg = test_generator_eeg.batch(ALL_BATCH_SIZE)
 
     with strategy.scope():
         # model = EnsembleStudent(num_output=num_output, expected_size=EXPECTED_ECG_SIZE)
@@ -111,10 +111,10 @@ for fold in range(1, 2):
         ecg_model.summary()
         eeg_model.summary()
 
-        # learning_rate = tf.keras.optimizers.schedules.ExponentialDecay(initial_learning_rate=initial_learning_rate,
-        #                                                                decay_steps=EPOCHS, decay_rate=0.95,
-        #                                                                staircase=True)
-        learning_rate = initial_learning_rate
+        learning_rate = tf.keras.optimizers.schedules.ExponentialDecay(initial_learning_rate=initial_learning_rate,
+                                                                       decay_steps=EPOCHS, decay_rate=0.95,
+                                                                       staircase=True)
+        # learning_rate = initial_learning_rate
         optimizer = tf.keras.optimizers.Adamax(learning_rate=learning_rate)
 
         # ---------------------------Epoch&Loss--------------------------#
@@ -188,8 +188,6 @@ for fold in range(1, 2):
 
         for epoch in range(EPOCHS):
             # Train Loop
-            total_loss = 0.0
-            num_batches = 0
             for train_ecg in train_data_ecg:
                 for train_eeg in train_data_eeg:
                     if len(train_ecg[0]) == len(train_eeg[0]):

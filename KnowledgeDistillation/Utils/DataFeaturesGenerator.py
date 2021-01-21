@@ -250,7 +250,7 @@ class DataFetchPreTrain_CL:
             m_class = arValMulLabels(y_ar_bin, y_val_bin)
 
             if len(ecg_raw) >= self.ECG_N:
-                ecg = ecg_raw[-self.ECG_N:] / ECG_RAW_MAX
+                ecg = (ecg_raw[-self.ECG_N:] - 1223.901793051745) / 1068.7720750244841
                 eeg = (eeg_raw - EEG_RAW_MIN) / (EEG_RAW_MAX - EEG_RAW_MIN)
 
                 # label = np.zeros_like(ecg[-self.ECG_N:])

@@ -17,21 +17,17 @@ class ECGEEGEncoder:
 
         # Encoder
         for f in [8, 16, 32]:
-            x = tf.keras.layers.Conv1D(filters=f, kernel_size=10, strides=1, padding="same", trainable=pretrain)(x)
-            x = tf.keras.layers.BatchNormalization()(x)
-            x = tf.keras.layers.ELU()(x)
-            x = tf.keras.layers.MaxPooling1D(pool_size=4)(x)
-        for f in [64, 128, 256]:
             x = tf.keras.layers.Conv1D(filters=f, kernel_size=5, strides=1, padding="same", trainable=pretrain)(x)
             x = tf.keras.layers.BatchNormalization()(x)
             x = tf.keras.layers.ELU()(x)
+            x = tf.keras.layers.MaxPooling1D(pool_size=3)(x)
             x = tf.keras.layers.Conv1D(filters=f, kernel_size=5, strides=1, padding="same", trainable=pretrain)(x)
             x = tf.keras.layers.BatchNormalization()(x)
             x = tf.keras.layers.ELU()(x)
             x = tf.keras.layers.MaxPooling1D(pool_size=3)(x)
 
         h_ecg = tf.keras.layers.Flatten()(x)
-        x = tf.keras.layers.Dropout(0.5)(h_ecg)
+        x = tf.keras.layers.Dropout(0.15)(h_ecg)
 
         # Head
         for u in [256, 256]:
