@@ -10,7 +10,6 @@ num_output = 4
 initial_learning_rate = 0.2e-3
 EPOCHS = 500
 BATCH_SIZE = 128
-T = 0.1
 
 for fold in range(1, 2):
 
@@ -33,8 +32,8 @@ for fold in range(1, 2):
     validation_data = DATASET_PATH + "validation_data_" + str(fold) + ".csv"
     testing_data = DATASET_PATH + "test_data_" + str(fold) + ".csv"
 
-    # data_fetch = DataFetchPreTrain_CL(training_data, validation_data, testing_data, ECG_RAW_N)
-    data_fetch = DataFetchPreTrain_CL(validation_data, validation_data, testing_data, ECG_RAW_N)
+    data_fetch = DataFetchPreTrain_CL(training_data, validation_data, testing_data, ECG_RAW_N)
+    # data_fetch = DataFetchPreTrain_CL(validation_data, validation_data, testing_data, ECG_RAW_N)
     generator = data_fetch.fetch
 
     train_generator_ecg = tf.data.Dataset.from_generator(
@@ -87,11 +86,10 @@ for fold in range(1, 2):
     val_data_eeg = val_generator_eeg.batch(BATCH_SIZE)
     test_data_eeg = test_generator_eeg.batch(BATCH_SIZE)
 
-    learning_rate = tf.keras.optimizers.schedules.ExponentialDecay(initial_learning_rate=initial_learning_rate,
-                                                                   decay_steps=EPOCHS, decay_rate=0.95,
-                                                                   staircase=True)
-    # learning_rate = initial_learning_rate
-    # optimizer = tf.keras.optimizers.SGD(learning_rate=initial_learning_rate)
+    # learning_rate = tf.keras.optimizers.schedules.ExponentialDecay(initial_learning_rate=initial_learning_rate,
+    #                                                                decay_steps=EPOCHS, decay_rate=0.95,
+    #                                                                staircase=True)
+    learning_rate = initial_learning_rate
     optimizer = tf.keras.optimizers.Adamax(learning_rate=learning_rate)
 
     # ---------------------------Epoch&Loss--------------------------#
@@ -175,8 +173,8 @@ for fold in range(1, 2):
 
         template = "epoch {}/{} | Train_loss: {} | Val_loss: {}"
         print(template.format(epoch + 1, EPOCHS, train_loss.result().numpy(), vald_loss.result().numpy()))
-        lr_now = optimizer._decayed_lr(tf.float32).numpy()
-        print("Now learning rate:", lr_now)
+        # lr_now = optimizer._decayed_lr(tf.float32).numpy()
+        # print("Now learning rate:", lr_now)
 
         # Save model
 

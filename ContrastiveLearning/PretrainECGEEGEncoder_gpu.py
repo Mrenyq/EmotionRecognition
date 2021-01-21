@@ -111,11 +111,10 @@ for fold in range(1, 2):
         ecg_model.summary()
         eeg_model.summary()
 
-        learning_rate = tf.keras.optimizers.schedules.ExponentialDecay(initial_learning_rate=initial_learning_rate,
-                                                                       decay_steps=EPOCHS, decay_rate=0.95,
-                                                                       staircase=True)
-        # learning_rate = initial_learning_rate
-        # optimizer = tf.keras.optimizers.SGD(learning_rate=initial_learning_rate)
+        # learning_rate = tf.keras.optimizers.schedules.ExponentialDecay(initial_learning_rate=initial_learning_rate,
+        #                                                                decay_steps=EPOCHS, decay_rate=0.95,
+        #                                                                staircase=True)
+        learning_rate = initial_learning_rate
         optimizer = tf.keras.optimizers.Adamax(learning_rate=learning_rate)
 
         # ---------------------------Epoch&Loss--------------------------#
@@ -219,8 +218,8 @@ for fold in range(1, 2):
 
             template = "epoch {}/{} | Train_loss: {} | Val_loss: {}"
             print(template.format(epoch + 1, EPOCHS, train_loss.result().numpy(), vald_loss.result().numpy()))
-            lr_now = optimizer._decayed_lr(tf.float32).numpy()
-            print("Now learning rate:", lr_now)
+            # lr_now = optimizer._decayed_lr(tf.float32).numpy()
+            # print("Now learning rate:", lr_now)
 
             # Save model
 
