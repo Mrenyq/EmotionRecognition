@@ -56,8 +56,8 @@ def convertLabels(ar, val):
     return labels
 
 
-def convertContrastiveLabels(label1, label2):
-    if label1 == label2:
+def convertContrastiveLabels(labels):
+    if labels[0] == labels[1]:
         return 0
     else:
         return 1
