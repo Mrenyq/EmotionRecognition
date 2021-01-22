@@ -48,8 +48,8 @@ for fold in range(1, 2):
     validation_data = DATASET_PATH + "validation_data_" + str(fold) + ".csv"
     testing_data = DATASET_PATH + "test_data_" + str(fold) + ".csv"
 
-    data_fetch = DataFetchPreTrain_CL(training_data, validation_data, testing_data, ECG_RAW_N)
-    # data_fetch = DataFetchPreTrain_CL(validation_data, validation_data, testing_data, ECG_RAW_N)
+    # data_fetch = DataFetchPreTrain_CL(training_data, validation_data, testing_data, ECG_RAW_N)
+    data_fetch = DataFetchPreTrain_CL(validation_data, validation_data, testing_data, ECG_RAW_N)
     generator = data_fetch.fetch
 
     train_generator_ecg = tf.data.Dataset.from_generator(

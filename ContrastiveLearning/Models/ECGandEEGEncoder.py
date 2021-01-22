@@ -27,17 +27,55 @@ class ECGEEGEncoder:
             x = tf.keras.layers.MaxPooling1D(pool_size=3)(x)
 
         h_ecg = tf.keras.layers.Flatten()(x)
-        # x = tf.keras.layers.Dropout(0.15)(h_ecg)
-        x = h_ecg
+        x = tf.keras.layers.Dropout(0.2)(h_ecg)
+        # x = h_ecg
 
         # Head
         for u in [32, 32]:
             x = tf.keras.layers.Dense(units=u)(x)
             x = tf.keras.layers.ELU()(x)
-            # x = tf.keras.layers.Dropout(0.15)(x)
+            x = tf.keras.layers.Dropout(0.15)(x)
         z_ecg = tf.keras.layers.Dense(units=self.dim_head_output)(x)
 
         return h_ecg, z_ecg
+
+    def eegEncoder1D(self, input_tensor, pretrain=True):
+
+        # Encoder
+        x = tf.keras.layers.Conv1D(filters=32, kernel_size=5, strides=1, padding="same")(input_tensor)
+        x = tf.keras.layers.BatchNormalization()(x)
+        x = tf.keras.layers.ELU()(x)
+        x = tf.keras.layers.MaxPooling1D(pool_size=5)(x)
+        x = tf.keras.layers.Conv1D(filters=64, kernel_size=10, strides=8, padding="same")(x)
+        x = tf.keras.layers.BatchNormalization()(x)
+        x = tf.keras.layers.ELU()(x)
+        x = tf.keras.layers.MaxPooling1D(pool_size=5)(x)
+        x = tf.keras.layers.Conv1D(filters=128, kernel_size=7, strides=1, padding="same")(x)
+        x = tf.keras.layers.BatchNormalization()(x)
+        x = tf.keras.layers.ELU()(x)
+        x = tf.keras.layers.Conv1D(filters=128, kernel_size=5, strides=1, padding="same")(x)
+        x = tf.keras.layers.BatchNormalization()(x)
+        x = tf.keras.layers.ELU()(x)
+        x = tf.keras.layers.MaxPooling1D(pool_size=3)(x)
+        x = tf.keras.layers.Conv1D(filters=256, kernel_size=5, strides=1, padding="same")(x)
+        x = tf.keras.layers.BatchNormalization()(x)
+        x = tf.keras.layers.ELU()(x)
+        x = tf.keras.layers.Conv1D(filters=256, kernel_size=3, strides=1, padding="same")(x)
+        x = tf.keras.layers.BatchNormalization()(x)
+        x = tf.keras.layers.ELU()(x)
+        x = tf.keras.layers.MaxPooling1D(pool_size=3)(x)
+        h_eeg = tf.keras.layers.Flatten()(x)
+        x = tf.keras.layers.Dropout(0.3)(h_eeg)
+        # x = h_eeg
+
+        # Head
+        for u in [128, 64, 32]:
+            x = tf.keras.layers.Dense(units=u)(x)
+            x = tf.keras.layers.ELU()(x)
+            x = tf.keras.layers.Dropout(0.15)(x)
+        z_eeg = tf.keras.layers.Dense(units=self.dim_head_output)(x)
+
+        return h_eeg, z_eeg
 
     def eegEncoder3D(self, input_tensor, pretrain=True):
 
@@ -69,44 +107,6 @@ class ECGEEGEncoder:
             x = tf.keras.layers.Dense(units=u)(x)
             x = tf.keras.layers.ELU()(x)
             x = tf.keras.layers.Dropout(0.15)(x)
-        z_eeg = tf.keras.layers.Dense(units=self.dim_head_output)(x)
-
-        return h_eeg, z_eeg
-
-    def eegEncoder1D(self, input_tensor, pretrain=True):
-
-        # Encoder
-        x = tf.keras.layers.Conv1D(filters=32, kernel_size=5, strides=1, padding="same")(input_tensor)
-        x = tf.keras.layers.BatchNormalization()(x)
-        x = tf.keras.layers.ELU()(x)
-        x = tf.keras.layers.MaxPooling1D(pool_size=5)(x)
-        x = tf.keras.layers.Conv1D(filters=64, kernel_size=10, strides=8, padding="same")(x)
-        x = tf.keras.layers.BatchNormalization()(x)
-        x = tf.keras.layers.ELU()(x)
-        x = tf.keras.layers.MaxPooling1D(pool_size=5)(x)
-        x = tf.keras.layers.Conv1D(filters=128, kernel_size=7, strides=1, padding="same")(x)
-        x = tf.keras.layers.BatchNormalization()(x)
-        x = tf.keras.layers.ELU()(x)
-        x = tf.keras.layers.Conv1D(filters=128, kernel_size=5, strides=1, padding="same")(x)
-        x = tf.keras.layers.BatchNormalization()(x)
-        x = tf.keras.layers.ELU()(x)
-        x = tf.keras.layers.MaxPooling1D(pool_size=3)(x)
-        x = tf.keras.layers.Conv1D(filters=256, kernel_size=5, strides=1, padding="same")(x)
-        x = tf.keras.layers.BatchNormalization()(x)
-        x = tf.keras.layers.ELU()(x)
-        x = tf.keras.layers.Conv1D(filters=256, kernel_size=3, strides=1, padding="same")(x)
-        x = tf.keras.layers.BatchNormalization()(x)
-        x = tf.keras.layers.ELU()(x)
-        x = tf.keras.layers.MaxPooling1D(pool_size=3)(x)
-        h_eeg = tf.keras.layers.Flatten()(x)
-        # x = tf.keras.layers.Dropout(0.5)(h_eeg)
-        x = h_eeg
-
-        # Head
-        for u in [128, 64, 32]:
-            x = tf.keras.layers.Dense(units=u)(x)
-            x = tf.keras.layers.ELU()(x)
-            # x = tf.keras.layers.Dropout(0.2)(x)
         z_eeg = tf.keras.layers.Dense(units=self.dim_head_output)(x)
 
         return h_eeg, z_eeg
