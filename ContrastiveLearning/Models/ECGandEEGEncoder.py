@@ -102,16 +102,8 @@ class ECGEEGEncoder:
         # x = tf.keras.layers.Dropout(0.5)(h_eeg)
         x = h_eeg
 
-        # x = input_tensor
-        # for f in [16, 32, 64, 128, 128]:
-        #     x = tf.keras.layers.Conv1D(filters=f, kernel_size=5, strides=1, padding="same", trainable=pretrain)(x)
-        #     x = tf.keras.layers.BatchNormalization()(x)
-        #     x = tf.keras.layers.ELU()(x)
-        #     x = tf.keras.layers.MaxPooling1D(pool_size=4)(x)
-        # h_eeg = tf.keras.layers.GlobalAveragePooling1D()(x)
-
         # Head
-        for u in [256, 128, 64]:
+        for u in [128, 64, 32]:
             x = tf.keras.layers.Dense(units=u)(x)
             x = tf.keras.layers.ELU()(x)
             # x = tf.keras.layers.Dropout(0.2)(x)
