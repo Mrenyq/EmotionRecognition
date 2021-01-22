@@ -223,9 +223,9 @@ class DataFetchPreTrain_CL:
             # print(i)
             data_i = data_set[i]
             if ecg_or_eeg == 0:
-                yield data_i[0], data_i[2]
+                yield data_i[0], data_i[2], data_i[3], data_i[4]
             else:
-                yield data_i[1], data_i[2]
+                yield data_i[1], data_i[2], data_i[3], data_i[4]
             i += 1
 
     def readData(self, features_list):
@@ -241,6 +241,7 @@ class DataFetchPreTrain_CL:
 
             y_ar = features_list.iloc[i]["Arousal"]
             y_val = features_list.iloc[i]["Valence"]
+            subject = features_list.iloc[i]["Subject"]
             if self.soft is False:
                 y_ar_bin = arToLabels(y_ar)
                 y_val_bin = valToLabels(y_val)
@@ -255,7 +256,7 @@ class DataFetchPreTrain_CL:
 
                 # label = np.zeros_like(ecg[-self.ECG_N:])
                 # label[self.ecg_features.extractRR(ecg).astype(np.int32)] = 1
-                data_set.append([ecg[-self.ECG_N:], eeg, m_class])
+                data_set.append([ecg[-self.ECG_N:], eeg, y_ar, y_val, subject])
                 # data_set.append([ecg[-self.ECG_N:], concat_features[1]])
 
         return data_set

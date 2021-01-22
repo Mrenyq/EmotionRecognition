@@ -19,12 +19,12 @@ EEG_RAW_MAX = 2.0426152724552216
 EEG_RAW_MIN = -2.169352558978187
 
 # features
-EDA_N = 553
+EDA_N = 1102
 PPG_N = 11
 Resp_N = 11
 ECG_Resp_N = 13
 ECG_N = 13
-EEG_N = 912
+EEG_N = 1102
 
 # Path Const
 DATASET_PATH = "G:\\usr\\nishihara\\data\\Yamaha-Experiment\\data\\"
@@ -40,7 +40,7 @@ ECG_RR_PATH = RESULTS_PATH + "ECG_RESP_RAW\\"
 ECG_RESP_PATH = RESULTS_PATH + "ecg_resp\\"
 TENSORBOARD_PATH = "D:\\usr\\pras\\result\\ValenceArousal\\tensorboard\\sMCL\\"
 
-#results raw
+# results raw
 RESULTS_RAW_PATH = "\\results_raw\\"
 EEG_RAW_PATH = RESULTS_RAW_PATH + "EEG\\"
 EDA_RAW_PATH = RESULTS_RAW_PATH + "eda\\"
@@ -49,6 +49,5 @@ RESP_RAW_PATH = RESULTS_RAW_PATH + "Resp\\"
 ECG_RAW_PATH = RESULTS_RAW_PATH + "ECG\\"
 ECG_RAW_RESP_PATH = RESULTS_RAW_PATH + "ECG_resp\\"
 
-
-#manager
-CHECK_POINT_PATH = "D:\\usr\\pras\\result\\ValenceArousal\\model\\sMCL\\"
+# manager
+CHECK_POINT_PATH = "G:\\usr\\nishihara\\result\\EmotionRecognition\\"

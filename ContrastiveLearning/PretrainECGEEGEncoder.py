@@ -6,7 +6,7 @@ from KnowledgeDistillation.Utils.DataFeaturesGenerator import DataFetchPreTrain_
 import os
 
 # setting
-num_output = 4
+num_output = 32
 initial_learning_rate = 0.2e-3
 EPOCHS = 500
 BATCH_SIZE = 128
@@ -21,7 +21,7 @@ for fold in range(1, 2):
     # train_summary_writer = tf.summary.create_file_writer(train_log_dir)
     # test_summary_writer = tf.summary.create_file_writer(test_log_dir)
 
-    CL = ECGEEGEncoder()
+    CL = ECGEEGEncoder(dim_head_output=num_output)
     input_ecg = tf.keras.layers.Input(shape=(ECG_RAW_N,))
     input_eeg = tf.keras.layers.Input(shape=(EEG_RAW_N, EEG_RAW_CH))
     ecg_model, eeg_model, ecg_encoder, eeg_encoder = CL.createModel(input_ecg, input_eeg)
