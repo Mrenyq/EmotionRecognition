@@ -49,38 +49,38 @@ for fold in range(1, 2):
     testing_data = DATASET_PATH + "test_data_" + str(fold) + ".csv"
 
     # data_fetch = DataFetchPreTrain_CL(training_data, validation_data, testing_data, ECG_RAW_N)
-    data_fetch = DataFetchPreTrain_CL(validation_data, validation_data, testing_data, ECG_RAW_N)
+    data_fetch = DataFetchPreTrain_CL(validation_data, testing_data, testing_data, ECG_RAW_N)
     generator = data_fetch.fetch
 
     train_generator_ecg = tf.data.Dataset.from_generator(
         lambda: generator(training_mode=0, ecg_or_eeg=0),
-        output_types=(tf.float32, tf.int32, tf.int32, tf.string),
-        output_shapes=(tf.TensorShape([ECG_RAW_N]), (), (), ()))
+        output_types=(tf.float32, tf.float32, tf.string),
+        output_shapes=(tf.TensorShape([ECG_RAW_N]), (), ()))
 
     val_generator_ecg = tf.data.Dataset.from_generator(
         lambda: generator(training_mode=1, ecg_or_eeg=0),
-        output_types=(tf.float32, tf.int32, tf.int32, tf.string),
-        output_shapes=(tf.TensorShape([ECG_RAW_N]), (), (), ()))
+        output_types=(tf.float32, tf.float32, tf.string),
+        output_shapes=(tf.TensorShape([ECG_RAW_N]), (), ()))
 
     test_generator_ecg = tf.data.Dataset.from_generator(
         lambda: generator(training_mode=2, ecg_or_eeg=0),
-        output_types=(tf.float32, tf.int32, tf.int32, tf.string),
-        output_shapes=(tf.TensorShape([ECG_RAW_N]), (), (), ()))
+        output_types=(tf.float32, tf.float32, tf.string),
+        output_shapes=(tf.TensorShape([ECG_RAW_N]), (), ()))
 
     train_generator_eeg = tf.data.Dataset.from_generator(
         lambda: generator(training_mode=0, ecg_or_eeg=1),
-        output_types=(tf.float32, tf.int32, tf.int32, tf.string),
-        output_shapes=(tf.TensorShape([EEG_RAW_N, EEG_RAW_CH]), (), (), ()))
+        output_types=(tf.float32, tf.float32, tf.string),
+        output_shapes=(tf.TensorShape([EEG_RAW_N, EEG_RAW_CH]), (), ()))
 
     val_generator_eeg = tf.data.Dataset.from_generator(
         lambda: generator(training_mode=1, ecg_or_eeg=1),
-        output_types=(tf.float32, tf.int32, tf.int32, tf.string),
-        output_shapes=(tf.TensorShape([EEG_RAW_N, EEG_RAW_CH]), (), (), ()))
+        output_types=(tf.float32, tf.float32, tf.string),
+        output_shapes=(tf.TensorShape([EEG_RAW_N, EEG_RAW_CH]), (), ()))
 
     test_generator_eeg = tf.data.Dataset.from_generator(
         lambda: generator(training_mode=2, ecg_or_eeg=1),
-        output_types=(tf.float32, tf.int32, tf.int32, tf.string),
-        output_shapes=(tf.TensorShape([EEG_RAW_N, EEG_RAW_CH]), (), (), ()))
+        output_types=(tf.float32, tf.float32, tf.string),
+        output_shapes=(tf.TensorShape([EEG_RAW_N, EEG_RAW_CH]), (), ()))
 
     # train_data_ecg = train_generator_ecg.shuffle(data_fetch.train_n).padded_batch(
     #     BATCH_SIZE, padded_shapes=(tf.TensorShape([ECG_RAW_N]), ()))
@@ -180,7 +180,6 @@ for fold in range(1, 2):
                                               args=(x_ecg, x_eeg, label_ecg, label_eeg, global_batch_size))
             return strategy.reduce(tf.distribute.ReduceOp.SUM, per_replica_losses,
                                    axis=None)
-
 
         @tf.function
         def distributed_test_step(x_ecg, x_eeg, label_ecg, label_eeg, global_batch_size):

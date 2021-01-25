@@ -223,9 +223,9 @@ class DataFetchPreTrain_CL:
             # print(i)
             data_i = data_set[i]
             if ecg_or_eeg == 0:
-                yield data_i[0], data_i[2], data_i[3], data_i[4]
+                yield data_i[0], data_i[2], data_i[3]
             else:
-                yield data_i[1], data_i[2], data_i[3], data_i[4]
+                yield data_i[1], data_i[2], data_i[3]
             i += 1
 
     def readData(self, features_list):
@@ -239,24 +239,12 @@ class DataFetchPreTrain_CL:
             ecg_raw = np.load(base_path + ECG_R_PATH + "ecg_raw_" + str(filename) + ".npy")
             eeg_raw = np.load(base_path + EEG_R_PATH + "eeg_raw_" + str(filename) + ".npy")
 
-            y_ar = features_list.iloc[i]["Arousal"]
-            y_val = features_list.iloc[i]["Valence"]
+            time = features_list.iloc[i]["Start"]
             subject = features_list.iloc[i]["Subject"]
-            if self.soft is False:
-                y_ar_bin = arToLabels(y_ar)
-                y_val_bin = valToLabels(y_val)
-            else:
-                y_ar_bin = valArToLabels(y_ar, True)
-                y_val_bin = valArToLabels(y_val, True)
-            m_class = arValMulLabels(y_ar_bin, y_val_bin)
 
             if len(ecg_raw) >= self.ECG_N:
                 ecg = (ecg_raw[-self.ECG_N:] - 1223.901793051745) / 1068.7720750244841
                 eeg = (eeg_raw - EEG_RAW_MIN) / (EEG_RAW_MAX - EEG_RAW_MIN)
-
-                # label = np.zeros_like(ecg[-self.ECG_N:])
-                # label[self.ecg_features.extractRR(ecg).astype(np.int32)] = 1
-                data_set.append([ecg[-self.ECG_N:], eeg, y_ar, y_val, subject])
-                # data_set.append([ecg[-self.ECG_N:], concat_features[1]])
+                data_set.append([ecg[-self.ECG_N:], eeg, time, subject])
 
         return data_set

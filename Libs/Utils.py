@@ -56,16 +56,12 @@ def convertLabels(ar, val):
     return labels
 
 
-def convertContrastiveLabels(labels):
-    """
-    :param labels: list of ecg and eeg labels.
-    labels[0], labels[1]: ecg and eeg arousal label
-    labels[2], labels[3]: ecg and eeg valence label
-    labels[4], labels[5]: ecg and eeg subject label
-    :return
-    """
-    if labels[0] == labels[1] and labels[2] == labels[3] and labels[4] == labels[5]:
-        return 0
+def convertContrastiveLabels(time1, time2, sub1, sub2):
+    if sub1 == sub2:
+        if (time1 + 45 <= time2) or (time1 - 45 >= time2):
+            return 0
+        else:
+            return 1
     else:
         return 1
 

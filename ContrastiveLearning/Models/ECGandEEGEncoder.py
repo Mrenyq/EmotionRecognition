@@ -126,13 +126,13 @@ class ECGEEGEncoder:
         loss_metrics = tfa.losses.ContrastiveLoss(margin=margin, reduction=reduction)
         x_ecg = tf.convert_to_tensor(input_ecg, dtype=tf.float32)
         x_eeg = tf.convert_to_tensor(input_eeg, dtype=tf.float32)
-        labels = tf.map_fn(convertContrastiveLabels,
-                           elems=(label_ecg[0], label_eeg[0], label_ecg[1], label_eeg[1], label_ecg[2], label_eeg[2]),
+        labels = tf.map_fn(lambda x: convertContrastiveLabels(x[0], x[1], x[2], x[3]),
+                           elems=(label_ecg[0], label_eeg[0], label_ecg[1], label_eeg[1]),
                            fn_output_signature=tf.int32)
         z_ecg = self.ecg_model(x_ecg)
         z_eeg = self.eeg_model(x_eeg)
-        z_ecg = tf.math.l2_normalize(z_ecg, axis=1)
-        z_eeg = tf.math.l2_normalize(z_eeg, axis=1)
+        # z_ecg = tf.math.l2_normalize(z_ecg, axis=1)
+        # z_eeg = tf.math.l2_normalize(z_eeg, axis=1)
         distance_z = tf.linalg.norm(z_ecg - z_eeg, axis=1)
         loss = loss_metrics(y_true=labels, y_pred=distance_z)
         return loss
