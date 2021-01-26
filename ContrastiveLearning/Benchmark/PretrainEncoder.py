@@ -23,10 +23,11 @@ def show_imgs(imgs, row, col):
 
 
 # Define const
-BATCH_SIZE = 512
+BATCH_SIZE = 256
 OPTIMIZER = Adam()
 EPOCHS_PRIOR = 40
 T = 0.1
+OUTPUT_DIM = 128
 
 # Import CIFAR10 dataset
 (x_train, y_train), (x_test, y_test) = cifar10.load_data()
@@ -37,15 +38,14 @@ input_shape = x_train.shape[1:4]
 
 # Define models
 input_tensor = Input(shape=input_shape)
-h, z = createCLModel_Small(input_tensor)
+h, z = createCLModel_Small(input_tensor, OUTPUT_DIM)
 encoder = Model(input_tensor, h)
 CL_model = Model(encoder.input, z)
 CL_model.summary()
-# plot_model(CL_model, to_file="BenchModel.png", show_shapes=True)
+plot_model(CL_model, to_file="BenchModel.png", show_shapes=True)
 
 
 # Define contrastive loss. x1, x2 are augmented minibatch.
-@tf.function
 def contrastiveLoss(xis, xjs, temperature=0.1):
     xis = tf.convert_to_tensor(xis, dtype=tf.float32)
     xjs = tf.convert_to_tensor(xjs, dtype=tf.float32)
@@ -77,7 +77,6 @@ def contrastiveLoss(xis, xjs, temperature=0.1):
     return loss_value
 
 
-@tf.function
 def computeGradient(xis, xjs, temperature=0.1):
     with tf.GradientTape() as tape:
         loss_value = contrastiveLoss(xis, xjs, temperature)
@@ -144,10 +143,11 @@ for epoch in range(EPOCHS_PRIOR):
 plt.figure()
 plt.plot(loss_result_train)
 plt.plot(loss_result_val)
-plt.title('Contrastive Loss (NT-Xent)')
+plt.title('Contrastive Loss')
 plt.ylabel('Loss')
 plt.xlabel('Epoch')
 plt.legend(['Train', 'Validation'])
+plt.savefig("ContrastiveLoss.png")
 plt.show()
 
 encoder.save_weights("./encoder_param.hdf5")

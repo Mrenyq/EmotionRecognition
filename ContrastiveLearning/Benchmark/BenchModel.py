@@ -16,21 +16,21 @@ def createCLModel(input_tensor):
     return h, z
 
 
-def createCLModel_Small(input_tensor):
+def createCLModel_Small(input_tensor, num_output):
     x = input_tensor
     for filters in [64, 128, 256, 512]:
         x = Conv2D(filters, kernel_size=(3, 3), padding="same")(x)
+        x = BatchNormalization()(x)
         x = ReLU()(x)
         x = MaxPooling2D(pool_size=(2, 2))(x)
-        x = Dropout(0.5)(x)
     h = GlobalAveragePooling2D()(x)
 
     x = h
     for units in [128, 128]:
         x = Dense(units=units)(x)
-        x = BatchNormalization()(x)
         x = ReLU()(x)
-    z = x
+        x = Dropout(0.2)(x)
+    z = Dense(units=num_output)(x)
 
     return h, z
 
