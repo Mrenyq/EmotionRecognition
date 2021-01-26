@@ -16,8 +16,8 @@ from ContrastiveLearning.Benchmark.BenchModel import createClassificationModel, 
 NUM_CLASSES = 10
 OUTPUT_DIM = 128
 BATCH_SIZE = 256
-OPTIMIZER = Adam()
-EPOCHS = 100
+LEARNING_LATE = 0.2e-3
+EPOCHS = 500
 VALIDATION_SPLIT = 0.2
 FINE_TUNING = True
 
@@ -53,7 +53,8 @@ classification_model.summary()
 # plot_model(classification_model, to_file="ClassificationModel.png", show_shapes=True)
 
 # Training and validation
-classification_model.compile(optimizer=OPTIMIZER, loss=CategoricalCrossentropy(), metrics=[CategoricalAccuracy()])
+optimizer = Adam(learning_rate=LEARNING_LATE)
+classification_model.compile(optimizer=optimizer, loss=CategoricalCrossentropy(), metrics=[CategoricalAccuracy()])
 history_CL = classification_model.fit(x_train, y_train,
                                       batch_size=BATCH_SIZE,
                                       epochs=EPOCHS,
@@ -82,7 +83,7 @@ classification_model.summary()
 # plot_model(classification_model, to_file="ClassificationModel.png", show_shapes=True)
 
 # Training and validation
-classification_model.compile(optimizer=OPTIMIZER, loss=CategoricalCrossentropy(), metrics=[CategoricalAccuracy()])
+classification_model.compile(optimizer=optimizer, loss=CategoricalCrossentropy(), metrics=[CategoricalAccuracy()])
 history_normal = classification_model.fit(x_train, y_train,
                                           batch_size=BATCH_SIZE,
                                           epochs=EPOCHS,
